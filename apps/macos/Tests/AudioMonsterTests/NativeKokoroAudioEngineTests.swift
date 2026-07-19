@@ -177,7 +177,7 @@ struct NativeKokoroAudioEngineTests {
                 destinationURL: destination
             )
             Issue.record("An unsupported voice should fail validation.")
-        } catch let NativeKokoroError.unsupportedVoice(voiceID) {
+        } catch NativeKokoroError.unsupportedVoice(let voiceID) {
             #expect(voiceID == "not_a_kokoro_voice")
         } catch {
             Issue.record("Unexpected error: \(error)")
