@@ -1,15 +1,13 @@
 # Audio Monster
 
 <p align="center">
-  <img src="apps/macos/Resources/AudioMonsterMenuBarTemplate@2x.png" width="64" alt="Audio Monster app icon">
+  <img src="docs/images/audio-monster-readme.png" width="64" alt="Audio Monster app icon">
 </p>
 
 [![CI](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml/badge.svg)](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml)
-[![Release v0.1.0](docs/images/badges/release.svg)](https://github.com/wolfyy970/audio-monster/releases/tag/v0.1.0)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
 ![Apple Silicon required](https://img.shields.io/badge/Apple%20Silicon-required-000000?logo=apple&logoColor=white)
 ![Swift 6.2](https://img.shields.io/badge/Swift-6.2-F05138?logo=swift&logoColor=white)
-![Python not required](docs/images/badges/python-not-required.svg)
 [![MIT License](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
 
 > [!IMPORTANT]
