@@ -1,4 +1,5 @@
 import Foundation
+import SwiftReadability
 import Testing
 
 @testable import AudioMonster
@@ -7,6 +8,20 @@ import Testing
 struct NativeArticleParsingTests {
     private let sourceURL = URL(string: "https://short.example/story")!
     private let resolvedURL = URL(string: "https://publisher.example/features/native-reading")!
+
+    @Test("The application owns its explicit Readability extension policy")
+    func ownsReadabilityExtensionPolicy() {
+        let expected: ReadabilityExtensions = [
+            .imageCarouselRecovery,
+            .publisherChromeCleanup,
+            .articleBodyPreservation,
+            .significantMediaPreservation,
+            .rubyNormalization,
+        ]
+
+        #expect(SwiftReadabilityArticleParser.readabilityExtensions == expected)
+        #expect(ReadabilityOptions().extensions.isEmpty)
+    }
 
     @Test("Returns native title, narration, and URL provenance")
     func parsesArticleAndPreservesProvenance() async throws {

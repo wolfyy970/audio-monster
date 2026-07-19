@@ -29,11 +29,12 @@ correct against Mozilla or belongs to a clearly named, opt-in extension. The
 current direction is therefore a reliable Swift rewrite of the original—not a
 mechanical preservation of an intermediate port.
 
-Audio Monster-specific recovery for publisher chrome, carousels, significant
-media, article bodies, and ruby markup is isolated in
-`ReadabilityExtensions.audioMonster`. The default extension set is empty and is
-the only mode compared with Mozilla, preventing client policy from silently
-changing the meaning of compatibility.
+Audio Monster owns its recovery policy for publisher chrome, carousels,
+significant media, article bodies, and ruby markup. The application composes
+those granular `ReadabilityExtensions` flags at its native parser boundary;
+SwiftReadability provides no client-specific preset. The package's default
+extension set is empty and is the only mode compared with Mozilla, preventing
+consumer policy from silently changing the meaning of compatibility.
 
 ## Evidence and release gates
 
