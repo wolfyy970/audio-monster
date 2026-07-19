@@ -13,19 +13,22 @@ run_app_tests() {
       -destination 'platform=macOS,arch=arm64' \
       -configuration Debug \
       -derivedDataPath .build/xcode-derived \
+      -clonedSourcePackagesDirPath .build \
       -skipPackagePluginValidation \
+      -onlyUsePackageVersionsFromResolvedFile \
       test \
       CODE_SIGNING_ALLOWED=NO \
       -test-timeouts-enabled YES \
       -default-test-execution-time-allowance 30 \
       -maximum-test-execution-time-allowance 60
+    zsh "${script_dir}/tests/verify-macos-app-tests.sh"
   )
 }
 
 run_benchmark_tests() {
   (
     cd "${repo_root}/benchmarks/swift-tts"
-    swift test -c release
+    swift test --only-use-versions-from-resolved-file -c release
   )
 }
 
@@ -41,6 +44,9 @@ verify_repository_metadata() {
     "${repo_root}/Gemfile.lock" \
     "${repo_root}/SECURITY.md" \
     "${repo_root}/THIRD_PARTY_NOTICES.md" \
+    "${repo_root}/apps/macos/Resources/AudioMonster.icns" \
+    "${repo_root}/docs/images/audio-monster-app-icon.svg" \
+    "${repo_root}/scripts/generate-app-icon.swift" \
     "${repo_root}/.github/dependabot.yml" \
     "${repo_root}/.github/workflows/ci.yml" \
     "${repo_root}/docs/releasing.md" \
@@ -77,7 +83,7 @@ verify_repository_metadata() {
     "${repo_root}/apps/macos/Resources/Info.plist" \
     "${repo_root}/apps/macos/Resources/AudioMonster.entitlements" \
     >/dev/null
-  zsh -n "${repo_root}"/scripts/*.sh
+  zsh -n "${repo_root}"/scripts/*.sh "${repo_root}"/scripts/tests/*.sh
 
   local personal_path_pattern='/''Users/[^/]+'
   if rg -n "${personal_path_pattern}" \
@@ -113,9 +119,31 @@ verify_repository_metadata() {
   fi
 }
 
+verify_app_icon() (
+  local icon_work_dir generated_icon
+  icon_work_dir="$(mktemp -d /private/tmp/audio-monster-icon-verify.XXXXXX)"
+  generated_icon="${icon_work_dir}/AudioMonster.icns"
+  trap 'rm -rf -- "${icon_work_dir}"' EXIT
+
+  xcrun swift \
+    -module-cache-path "${icon_work_dir}/module-cache" \
+    "${repo_root}/scripts/generate-app-icon.swift" \
+    "${repo_root}/docs/images/audio-monster-app-icon.svg" \
+    "${generated_icon}"
+  cmp -s \
+    "${repo_root}/apps/macos/Resources/AudioMonster.icns" \
+    "${generated_icon}" \
+    || {
+      print -u2 "AudioMonster.icns does not match its reproducible SVG source."
+      exit 1
+    }
+)
+
 verify_static_metadata() {
   verify_repository_metadata
+  verify_app_icon
   zsh "${script_dir}/verify-sdk-revision.sh"
+  zsh "${script_dir}/tests/verify-sdk-revision-tests.sh"
   zsh "${script_dir}/verify-core-boundary.sh"
   xcrun swift-format lint \
     --recursive \

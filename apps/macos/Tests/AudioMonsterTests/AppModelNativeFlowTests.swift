@@ -49,6 +49,22 @@ private actor FakeNativeEngine: AudioConversionEngine {
     }
 }
 
+/// Keeps the AppModel integration test focused on orchestration across its
+/// service seams. `AudioFileStoreTests` exercise the production coordinator,
+/// collision handling, and metadata path independently.
+private actor NativeFlowAudioPersister: AudioFilePersisting {
+    func persist(_ request: AudioPersistenceRequest) async throws -> URL {
+        try FileManager.default.createDirectory(
+            at: request.destinationFolderURL,
+            withIntermediateDirectories: true
+        )
+        let destination = request.destinationFolderURL
+            .appendingPathComponent(request.requestedFilename)
+        try FileManager.default.copyItem(at: request.sourceFileURL, to: destination)
+        return destination
+    }
+}
+
 private actor ControllableNativeEngine: AudioConversionEngine {
     private typealias EventHandler = @Sendable (SynthesisEvent) async -> Void
 
@@ -342,6 +358,7 @@ struct AppModelNativeFlowTests {
             settings: settings,
             conversionEngine: FakeNativeEngine(),
             articleExtractor: FakeArticleExtractor(article: article),
+            filePersister: NativeFlowAudioPersister(),
             playbackCoordinator: makePlaybackCoordinator(rate: settings.playbackRate),
             voicePreviewDirectory: outputFolder.appendingPathComponent("test-previews")
         )

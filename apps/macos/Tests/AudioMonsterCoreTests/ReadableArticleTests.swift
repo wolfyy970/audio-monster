@@ -20,18 +20,4 @@ struct ReadableArticleTests {
         #expect(article.title == "A useful article")
         #expect(article.text == "Readable content.")
     }
-
-    @Test
-    func decodesBrowserSnapshotWithoutAPlatformBrowserDependency() throws {
-        let data = Data(
-            #"{"title":"Article","text":"Readable content","resolvedURL":"https://example.com/final","ready":true,"challenged":false,"method":"mozilla-readability"}"#
-                .utf8
-        )
-
-        let snapshot = try JSONDecoder().decode(BrowserExtractionSnapshot.self, from: data)
-
-        #expect(snapshot.title == "Article")
-        #expect(snapshot.resolvedURL == "https://example.com/final")
-        #expect(snapshot.method == .mozillaReadability)
-    }
 }

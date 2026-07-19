@@ -1,6 +1,8 @@
 opt_out_usage
 skip_docs
 
+require "tmpdir"
+
 default_platform(:mac)
 repo_root = File.expand_path("..", __dir__)
 build_script = File.join(repo_root, "scripts", "build-macos-app.sh")
@@ -64,6 +66,55 @@ platform :mac do
     version
   end
 
+  private_lane :verify_notarized_arm64_app do |options|
+    candidate_app = File.expand_path(options.fetch(:app))
+    candidate_binary = File.join(candidate_app, "Contents", "MacOS", "AudioMonster")
+    UI.user_error!("Release verification cannot find #{candidate_app}.") unless File.directory?(candidate_app)
+    UI.user_error!("Release verification cannot find #{candidate_binary}.") unless File.file?(candidate_binary)
+
+    sh("codesign", "--verify", "--deep", "--strict", candidate_app)
+    sh("xcrun", "stapler", "validate", candidate_app)
+    sh("spctl", "--assess", "--type", "execute", "--verbose=4", candidate_app)
+    sh(verify_app_script, candidate_app)
+
+    architecture = sh("lipo", "-archs", candidate_binary, log: false).strip
+    UI.user_error!("Release binary has unexpected architectures: #{architecture}") unless architecture == "arm64"
+  end
+
+  private_lane :verify_tagged_revision do |options|
+    tag = options.fetch(:tag)
+    UI.user_error!("Invalid release tag #{tag}.") unless tag.match?(/\Av\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\z/)
+
+    head_commit = sh("git", "rev-parse", "--verify", "HEAD^{commit}", log: false).strip
+    local_tag_commit = sh(
+      "git",
+      "rev-parse",
+      "--verify",
+      "refs/tags/#{tag}^{commit}",
+      log: false
+    ).strip
+    UI.user_error!("#{tag} resolves to #{local_tag_commit}, but HEAD is #{head_commit}.") unless local_tag_commit == head_commit
+
+    remote_output = sh(
+      "git",
+      "ls-remote",
+      "--tags",
+      "origin",
+      "refs/tags/#{tag}",
+      "refs/tags/#{tag}^{}",
+      log: false
+    )
+    remote_refs = remote_output.lines.each_with_object({}) do |line, refs|
+      sha, ref = line.strip.split(/\s+/, 2)
+      refs[ref] = sha if sha&.match?(/\A[0-9a-f]{40}\z/) && !ref.to_s.empty?
+    end
+    remote_tag_commit = remote_refs["refs/tags/#{tag}^{}"] || remote_refs["refs/tags/#{tag}"]
+    UI.user_error!("origin does not contain #{tag}.") if remote_tag_commit.to_s.empty?
+    UI.user_error!("origin/#{tag} resolves to #{remote_tag_commit}, but HEAD is #{head_commit}.") unless remote_tag_commit == head_commit
+
+    head_commit
+  end
+
   desc "Build and verify the local ad-hoc-signed app"
   lane :build do
     sh(build_script, "release")
@@ -113,13 +164,7 @@ platform :mac do
     # The notarize action uses this archive for submission. The final archive
     # must be created after stapling so the ticket travels with the app.
     FileUtils.rm_f("#{app_path}.zip")
-    sh("xcrun", "stapler", "validate", app_path)
-    sh("codesign", "--verify", "--deep", "--strict", app_path)
-    sh("spctl", "--assess", "--type", "execute", "--verbose=4", app_path)
-    sh(verify_app_script)
-
-    architecture = sh("lipo", "-archs", app_binary, log: false).strip
-    UI.user_error!("Release binary has unexpected architectures: #{architecture}") unless architecture == "arm64"
+    verify_notarized_arm64_app(app: app_path)
 
     FileUtils.mkdir_p(artifacts_dir)
     archive_name = "Audio-Monster-v#{version}-macOS-arm64.zip"
@@ -129,6 +174,18 @@ platform :mac do
     FileUtils.rm_f(checksum_path)
     sh("ditto", "-c", "-k", "--rsrc", "--keepParent", app_path, archive_path)
     sh("unzip", "-tq", archive_path)
+
+    # Verify what users will actually download, not only the source bundle in
+    # dist/. This catches archive corruption, omitted notarization tickets, and
+    # packaging mistakes before a checksum or GitHub release is created.
+    Dir.mktmpdir("audio-monster-release-") do |extraction_dir|
+      sh("ditto", "-x", "-k", archive_path, extraction_dir)
+      extracted_entries = Dir.children(extraction_dir)
+      UI.user_error!("Release ZIP has unexpected top-level entries: #{extracted_entries.join(', ')}") unless extracted_entries == ["Audio Monster.app"]
+
+      extracted_app = File.join(extraction_dir, "Audio Monster.app")
+      verify_notarized_arm64_app(app: extracted_app)
+    end
 
     checksum = sh("shasum", "-a", "256", archive_path, log: false).split.first
     File.write(checksum_path, "#{checksum}  #{archive_name}\n")
@@ -155,8 +212,12 @@ platform :mac do
 
     version = source_version
     tag = "v#{version}"
-    sh("git", "rev-parse", "--verify", "refs/tags/#{tag}", log: false)
+    verify_tagged_revision(tag: tag)
     publication = release
+
+    status = sh("git", "status", "--porcelain", log: false).strip
+    UI.user_error!("The release build changed tracked repository content; refusing to publish.") unless status.empty?
+    verify_tagged_revision(tag: tag)
 
     result = set_github_release(
       repository_name: repository,

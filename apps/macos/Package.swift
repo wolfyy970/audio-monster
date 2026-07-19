@@ -16,7 +16,15 @@ let package = Package(
         .package(
             url: "https://github.com/Blaizzy/mlx-audio-swift.git",
             revision: "542fffacb3be8de47024b3b54888f71d72d46d30"
-        )
+        ),
+        .package(
+            url: "https://github.com/wolfyy970/swift-readability.git",
+            revision: "ecff27c6939beadc5c95e6c08ef8e744109817a6"
+        ),
+        .package(
+            url: "https://github.com/scinfu/SwiftSoup.git",
+            exact: "2.13.6"
+        ),
     ],
     targets: [
         .target(
@@ -30,12 +38,10 @@ let package = Package(
                 "AudioMonsterCore",
                 .product(name: "MLXAudioCore", package: "mlx-audio-swift"),
                 .product(name: "MLXAudioTTS", package: "mlx-audio-swift"),
+                .product(name: "SwiftReadability", package: "swift-readability"),
+                .product(name: "SwiftSoup", package: "SwiftSoup"),
             ],
-            path: "Sources/AudioMonster",
-            resources: [
-                .copy("Resources/Extraction"),
-                .copy("Resources/Readability")
-            ]
+            path: "Sources/AudioMonster"
         ),
         .testTarget(
             name: "AudioMonsterTests",

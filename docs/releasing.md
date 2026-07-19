@@ -3,9 +3,12 @@
 Official releases are built on a trusted maintainer Mac through Fastlane. Pull
 requests and contributor builds never receive Apple or GitHub credentials.
 
-The release lane runs the static gate, all native tests, a Developer ID build,
-bundle verification, Apple notarization, ticket stapling, Gatekeeper assessment,
-archive validation, and SHA-256 generation. It produces:
+The release lane runs the static gate, all native tests, immutable dependency
+verification, a Developer ID build, bundle verification, Apple notarization,
+ticket stapling, Gatekeeper assessment, archive validation, and SHA-256
+generation. It then extracts the final ZIP and repeats signature, notarization,
+Gatekeeper, architecture, and bundle checks against the exact app users will
+download. It produces:
 
 ```text
 artifacts/Audio-Monster-v<VERSION>-macOS-arm64.zip
@@ -70,10 +73,18 @@ make release
 
 Success requires all of the following:
 
+- `Package.swift`, `Package.resolved`, and every materialized checkout agree on
+  the pinned MLX Audio Swift and SwiftReadability revisions and SwiftSoup 2.13.6.
 - `codesign --verify --deep --strict` accepts the app.
+- Every Swift compatibility runtime required by the executable is present,
+  ARM64-only, and independently signed inside `Contents/lib`.
 - `stapler validate` finds the attached notarization ticket.
 - Gatekeeper reports `source=Notarized Developer ID`.
-- The final ZIP passes an integrity test and has a matching checksum file.
+- The app contains the exact license/notice tree for every resolved Swift
+  package, the reproducible monster app icon, and no legacy JavaScript, Python,
+  or Node runtime payload.
+- The final ZIP passes an integrity test and its re-extracted app passes every
+  release check before a matching checksum is written.
 
 The temporary ZIP uploaded by Fastlane's notarization action is deleted. The
 final ZIP is created only after stapling so the ticket is included.
@@ -89,17 +100,19 @@ export FL_GITHUB_RELEASE_API_TOKEN='github-token'
 bundle exec fastlane mac publish
 ```
 
-The lane rebuilds and revalidates the artifact, then creates a **draft** GitHub
-prerelease with generated notes, the ZIP, and its checksum. A maintainer must
-review and publish that draft in GitHub. The lane will not create an implicit
-tag or publish a dirty working tree.
+The lane requires the local tag, `HEAD`, and the peeled tag on `origin` to be the
+same commit both before and after the release build. It then creates a **draft**
+GitHub prerelease with generated notes, the ZIP, and its checksum. A maintainer
+must review and publish that draft in GitHub. The lane will not create an
+implicit tag, accept an unpushed tag, or publish a dirty working tree.
 
 ## Release checklist
 
 1. Update `CFBundleShortVersionString`, `CFBundleVersion`, README, and notices.
-2. Commit the complete change and create the matching version tag.
+2. Commit the complete change, create the matching version tag, and push both
+   the commit and tag to `origin`.
 3. Quit the running app.
 4. Run `make release` and inspect the artifact locally.
-5. Extract the ZIP in a clean location and launch it through Finder.
+5. Launch the Fastlane-verified ZIP through Finder on a clean Mac.
 6. Run the publish lane and review the draft release.
 7. Publish the GitHub release only after the download is tested on another Mac.

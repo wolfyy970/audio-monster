@@ -8,9 +8,13 @@ flowchart LR
     M --> PC["PlaybackCoordinator"]
     M --> V["VoicePreviewCoordinator"]
     M --> E["ArticleExtracting"]
-    E --> W["WKWebView + pinned Mozilla Readability"]
+    E --> X["NativeArticleExtractor"]
+    X --> W["WKWebView hydration + DOM snapshot"]
+    X --> R["Native SwiftReadability"]
+    R --> D["SwiftSoup DOM"]
+    R --> N["NarrationTextProjector"]
     M --> A["AudioConversionEngine"]
-    E --> C["AudioMonsterCore"]
+    X --> C["AudioMonsterCore"]
     A --> C
     C --> H["Validated URL + article + extraction policy + chunker"]
     A --> K["Warm native Kokoro model"]
@@ -44,16 +48,55 @@ executable depends on the core; platform adapters depend in the opposite directi
 
 ### Content extraction
 
-`BrowserPageRenderer` loads the submitted URL in an off-screen `WKWebView`, waits through browser checkpoints and client rendering, and runs a pinned Mozilla Readability 0.6.0 resource against a cloned DOM in an isolated `WKContentWorld`. Readability is the extraction algorithm used by Firefox Reader View; it scores the messy structures found on real publishing sites instead of trusting `article` or `main` tags. A bounded semantic extractor remains as a fallback.
+`NativeArticleExtractor` composes three deliberately separate services. First,
+`BrowserPageRenderer` loads the submitted URL in an off-screen `WKWebView` and
+waits for client-side rendering. A small, compiled-in bridge first returns typed,
+HTML-free readiness probes containing challenge, URL, title, total-text,
+prose-shaped-text, and stability signals. Only after that signal settles does
+Swift request one bounded clone of the rendered DOM. The transport clone removes
+only non-JSON-LD scripts, style elements, and comments; JSON-LD, `noscript` image
+fallbacks, metadata, attributes, and content remain available to native
+Readability. The bridge does not select content and does not contain Mozilla
+Readability. Some JavaScript is unavoidable at this WebKit boundary because
+Apple exposes no Swift API for serializing a live DOM; all article interpretation
+remains native.
 
-The renderer requires two matching readable snapshots before accepting a page, with a five-snapshot upper bound for articles containing live widgets. The result is plain normalized text only; Readability's returned HTML is never rendered. This avoids the script-injection concern associated with displaying unsanitized extracted markup. `ReadableArticle` retains the submitted URL, final redirect URL, title, and narration text.
+The renderer accepts two matching compact fingerprints, with a five-probe upper
+bound for pages containing live widgets. The fingerprint combines the resolved
+URL, title, semantic shape, and non-interface prose signal, so a stable navigation
+or consent shell cannot pre-empt a slower client-rendered article. The final DOM
+is serialized once and its signal is checked again before acceptance; the app
+never retains two multi-megabyte HTML snapshots. Browser verification challenges
+are returned as a distinct state and rejected before article parsing.
+
+Second, `SwiftReadabilityArticleParser` creates a fresh native Readability
+session off the main actor. The package is pinned by immutable revision, uses
+SwiftSoup 2.13.6, and treats Mozilla Readability commit
+[`ab4027a8b37669745016869a37a504727992b2ba`](https://github.com/mozilla/readability/commit/ab4027a8b37669745016869a37a504727992b2ba)
+as its behavioral specification. Default mode matches Mozilla across all observable
+fields on 136/136 compatibility inputs. Audio Monster deliberately opts into
+the separately tested `.audioMonster` profile for publisher chrome, carousel,
+media, article-body, and ruby handling; those additions cannot alter the
+package's default Mozilla contract.
+
+Third, `NarrationTextProjector` converts the extracted HTML to speech-oriented
+plain text. Readability's opt-in cleanup removes publisher chrome before this
+stage; the projector then preserves every selected heading, paragraph, list,
+quotation, preformatted block, line break, CJK passage, navigation landmark,
+aside, and footer while excluding controls, hidden content, and ruby
+pronunciation hints. Extracted HTML is never rendered. `ReadableArticle` retains
+the submitted URL, final redirect URL, title, and narration text.
 
 Main-frame HTTP 4xx and 5xx responses—including rate limits such as 429—are rejected
 by the WebKit navigation delegate before snapshot polling begins. Redirects,
 successful responses, and failed subresources remain eligible so that one broken
 image or analytics request cannot discard an otherwise readable article.
 
-The vendored Apache-2.0 source, license, upstream commit, and SHA-256 live under `Sources/AudioMonster/Resources/Readability`. It runs locally in Apple WebKit—there is no Python, Node.js runtime, network service, or runtime script download. The `ArticleExtracting` protocol remains the seam for a later pure-Swift implementation. A future Swift port should be a separate SwiftPM package built on SwiftSoup and gated against Mozilla's fixture corpus rather than an untested one-shot rewrite.
+The `RenderedPageRendering`, `ArticleParsing`, and `ArticleExtracting` protocols
+let a future iOS client replace the desktop browser adapter, or a hosted service
+supply fetched HTML, without coupling transport to content selection. There is
+no Python, Node.js runtime, localhost service, runtime script download, or
+bundled JavaScript extraction resource.
 
 ### Speech engine
 
@@ -92,4 +135,13 @@ For a hosted service, add authentication, quotas, durable jobs, restricted egres
 
 ## Packaging
 
-The build script invokes Xcode so the MLX Metal library is compiled and copied into the app’s Resources directory with the other SwiftPM resource bundles. Release coverage instrumentation is disabled, C/C++ source paths are prefix-mapped, and local symbols are stripped before signing. It fails packaging if the pinned Readability resource is absent. The verifier also rejects personal absolute build paths. The bundle contains no Python environment, server source, Node.js runtime, `uv`, or external encoder. Distribution still requires a Developer ID or App Store signature, notarization where applicable, and production iCloud entitlements.
+The build script invokes Xcode with versions restricted to `Package.resolved` so
+the MLX Metal library and exact native dependencies are compiled reproducibly.
+Release coverage instrumentation is disabled, C/C++ source paths are
+prefix-mapped, and local symbols are stripped before signing. Packaging fails
+if legacy `Readability.js` or `Snapshot.js` appears, if dependency revisions
+move, or if the app contains personal paths, Python, Node, server, or external
+encoder payloads. Exact license and notice files from the complete resolved
+SwiftPM checkout graph are copied into the app and verified byte for byte.
+Distribution still requires a Developer ID or App Store signature,
+notarization, and production iCloud entitlements.

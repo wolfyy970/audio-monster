@@ -54,7 +54,7 @@ final class AppModel: ObservableObject {
     init(
         settings: AppSettings,
         conversionEngine: any AudioConversionEngine = NativeKokoroAudioEngine.shared,
-        articleExtractor: any ArticleExtracting = BrowserPageRenderer.shared,
+        articleExtractor: any ArticleExtracting = NativeArticleExtractor.shared,
         filePersister: any AudioFilePersisting = NativeAudioFilePersister(),
         libraryScanner: any AudioLibraryScanning = NativeAudioLibraryScanner(),
         playbackCoordinator: PlaybackCoordinator? = nil,

@@ -1,15 +1,11 @@
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
- "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
- width="568.494970pt" height="587.874685pt" viewBox="0 0 568.494970 587.874685"
- preserveAspectRatio="xMidYMid meet">
-<metadata>
-Created by potrace 1.16, written by Peter Selinger 2001-2019
-</metadata>
-<g transform="translate(-0.806616,587.991139) scale(0.100000,-0.100000)"
-fill="#000000" stroke="none">
-<path d="M393 5860 c-18 -10 -39 -33 -48 -50 -10 -19 -45 -232 -91 -553 -92
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Audio Monster app icon</title>
+  <rect x="48" y="48" width="928" height="928" rx="224" fill="#111111"/>
+  <!-- The monster path is the existing Audio Monster vector artwork, unchanged. -->
+  <g transform="translate(236 220) scale(0.9710 0.9730)">
+    <g transform="translate(-0.806616,587.991139) scale(0.100000,-0.100000)" fill="#ffffff">
+      <path d="M393 5860 c-18 -10 -39 -33 -48 -50 -10 -19 -45 -232 -91 -553 -92
 -634 -103 -712 -154 -1087 -22 -162 -53 -389 -70 -504 -33 -232 -31 -262 19
 -310 14 -14 55 -36 91 -49 l65 -25 7 -68 c3 -38 11 -161 17 -274 13 -232 19
 -253 83 -258 42 -4 61 10 271 191 78 67 150 128 159 135 14 11 23 10 59 -8
@@ -38,5 +34,6 @@ l-23 -25 7 -212 c4 -117 9 -236 13 -264 l5 -51 -143 -74 c-131 -68 -146 -79
 -200 155 -210 271 -18 225 210 394 424 314z m3104 -7 c59 -26 127 -94 156
 -157 33 -71 33 -180 0 -251 -68 -146 -219 -216 -373 -175 -92 25 -187 118
 -213 209 -15 54 -12 142 6 195 18 53 91 140 138 164 90 47 199 53 286 15z"/>
-</g>
+    </g>
+  </g>
 </svg>

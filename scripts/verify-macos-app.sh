@@ -7,10 +7,9 @@ app_dir="${1:-${repo_root}/dist/Audio Monster.app}"
 contents_dir="${app_dir}/Contents"
 resources_dir="${contents_dir}/Resources"
 binary="${contents_dir}/MacOS/AudioMonster"
+swift_runtime_dir="${contents_dir}/lib"
 source_info="${repo_root}/apps/macos/Resources/Info.plist"
 source_entitlements="${repo_root}/apps/macos/Resources/AudioMonster.entitlements"
-source_readability_dir="${repo_root}/apps/macos/Sources/AudioMonster/Resources/Readability"
-readability_swift="${repo_root}/apps/macos/Sources/AudioMonster/MozillaReadabilityAsset.swift"
 
 fail() {
   print -u2 "App verification failed: $1"
@@ -31,10 +30,59 @@ cmp -s "${source_info}" "${contents_dir}/Info.plist" \
 bundle_identifier="$(plutil -extract CFBundleIdentifier raw "${contents_dir}/Info.plist")"
 [[ "${bundle_identifier}" == "org.audiomonster.AudioMonster" ]] \
   || fail "unexpected bundle identifier ${bundle_identifier}."
+bundle_icon="$(plutil -extract CFBundleIconFile raw "${contents_dir}/Info.plist")"
+[[ "${bundle_icon}" == "AudioMonster.icns" ]] \
+  || fail "unexpected application icon ${bundle_icon}."
 grep -Fq '<key>iCloud.org.audiomonster.AudioMonster</key>' "${contents_dir}/Info.plist" \
   || fail "the neutral Audio Monster iCloud container is missing."
 codesign --verify --deep --strict "${app_dir}" \
   || fail "the app's code signature is invalid."
+
+required_swift_runtime_sources=(
+  "${(@f)$(
+    xcrun swift-stdlib-tool \
+      --print \
+      --scan-executable "${binary}" \
+      --platform macosx
+  )}"
+)
+required_swift_runtime_sources=("${required_swift_runtime_sources[@]:#}")
+required_swift_runtime_names=()
+
+for runtime_source in "${required_swift_runtime_sources[@]}"; do
+  runtime_name="${runtime_source:t}"
+  print -r -- "${runtime_name}" | grep -Eq '^libswift[A-Za-z0-9_]+\.dylib$' \
+    || fail "Swift runtime discovery returned an unsafe filename: ${runtime_name}."
+  if (( ${required_swift_runtime_names[(Ie)${runtime_name}]} > 0 )); then
+    fail "Swift runtime discovery returned duplicate ${runtime_name}."
+  fi
+  required_swift_runtime_names+=("${runtime_name}")
+
+  packaged_runtime="${swift_runtime_dir}/${runtime_name}"
+  [[ -f "${packaged_runtime}" ]] \
+    || fail "missing required Swift compatibility runtime ${runtime_name}."
+  runtime_architectures="$(lipo -archs "${packaged_runtime}")" \
+    || fail "could not inspect ${runtime_name}."
+  [[ "${runtime_architectures}" == "arm64" ]] \
+    || fail "${runtime_name} has unexpected architectures: ${runtime_architectures}."
+  codesign --verify --strict "${packaged_runtime}" \
+    || fail "${runtime_name} has an invalid code signature."
+done
+
+packaged_swift_runtime_entries=("${swift_runtime_dir}"/*(N))
+if (( ${#packaged_swift_runtime_entries[@]} != ${#required_swift_runtime_names[@]} )); then
+  fail "the packaged Swift compatibility runtime set does not match the executable."
+fi
+for packaged_runtime in "${packaged_swift_runtime_entries[@]}"; do
+  runtime_name="${packaged_runtime:t}"
+  if (( ${required_swift_runtime_names[(Ie)${runtime_name}]} == 0 )); then
+    fail "unexpected Swift compatibility runtime ${runtime_name}."
+  fi
+done
+if (( ${#required_swift_runtime_names[@]} > 0 )) \
+  && ! otool -l "${binary}" | grep -Fq '@executable_path/../lib'; then
+  fail "the app executable cannot load its packaged Swift compatibility runtimes."
+fi
 
 if [[ -f "${contents_dir}/embedded.provisionprofile" ]]; then
   require_file "${source_entitlements}"
@@ -111,64 +159,61 @@ verify_icon() {
 verify_icon "AudioMonsterMenuBarTemplate.png" 18
 verify_icon "AudioMonsterMenuBarTemplate@2x.png" 36
 
-readability_scripts=(
-  "${resources_dir}"/*.bundle/Contents/Resources/Readability/Readability.js(N)
+verify_app_icon() (
+  local source_icon packaged_icon iconset_dir
+  source_icon="${repo_root}/apps/macos/Resources/AudioMonster.icns"
+  packaged_icon="${resources_dir}/AudioMonster.icns"
+  [[ -f "${source_icon}" ]] || fail "the source application icon is missing."
+  [[ -f "${packaged_icon}" ]] || fail "the app is missing its AudioMonster.icns application icon."
+  cmp -s "${source_icon}" "${packaged_icon}" \
+    || fail "packaged AudioMonster.icns differs from its source."
+
+  iconset_dir="$(mktemp -d /private/tmp/audio-monster-iconset.XXXXXX)"
+  trap 'rm -rf -- "${iconset_dir}"' EXIT
+  iconutil --convert iconset --output "${iconset_dir}/AudioMonster.iconset" \
+    "${packaged_icon}" >/dev/null \
+    || fail "AudioMonster.icns is not a valid macOS icon archive."
+  [[ -f "${iconset_dir}/AudioMonster.iconset/icon_512x512.png" ]] \
+    || fail "AudioMonster.icns is missing its 512x512 representation."
+  [[ -f "${iconset_dir}/AudioMonster.iconset/icon_512x512@2x.png" ]] \
+    || fail "AudioMonster.icns is missing its 1024x1024 representation."
 )
-readability_licenses=(
-  "${resources_dir}"/*.bundle/Contents/Resources/Readability/LICENSE.md(N)
-)
-readability_metadata_files=(
-  "${resources_dir}"/*.bundle/Contents/Resources/Readability/UPSTREAM.md(N)
-)
-snapshot_scripts=(
-  "${resources_dir}"/*.bundle/Contents/Resources/Extraction/Snapshot.js(N)
-)
+
+verify_app_icon
+
+for legal_file in LICENSE THIRD_PARTY_NOTICES.md; do
+  source_legal_file="${repo_root}/${legal_file}"
+  packaged_legal_file="${resources_dir}/${legal_file}"
+  require_file "${source_legal_file}"
+  require_file "${packaged_legal_file}"
+  cmp -s "${source_legal_file}" "${packaged_legal_file}" \
+    || fail "packaged ${legal_file} differs from the repository copy."
+done
+zsh "${script_dir}/package-third-party-licenses.sh" \
+  verify \
+  "${resources_dir}/ThirdPartyLicenses" \
+  || fail "the packaged dependency license tree is invalid."
+
 metal_libraries=(
   "${resources_dir}"/*.bundle/Contents/Resources/default.metallib(N)
 )
-(( ${#readability_scripts[@]} == 1 )) \
-  || fail "expected one bundled Readability.js, found ${#readability_scripts[@]}."
-(( ${#readability_licenses[@]} == 1 )) \
-  || fail "expected one bundled Readability license, found ${#readability_licenses[@]}."
-(( ${#readability_metadata_files[@]} == 1 )) \
-  || fail "expected one bundled Readability metadata file, found ${#readability_metadata_files[@]}."
-(( ${#snapshot_scripts[@]} == 1 )) \
-  || fail "expected one bundled extraction Snapshot.js, found ${#snapshot_scripts[@]}."
 (( ${#metal_libraries[@]} == 1 )) \
   || fail "expected one bundled MLX default.metallib, found ${#metal_libraries[@]}."
-
-source_snapshot="${repo_root}/apps/macos/Sources/AudioMonster/Resources/Extraction/Snapshot.js"
-require_file "${source_snapshot}"
-cmp -s "${source_snapshot}" "${snapshot_scripts[1]}" \
-  || fail "the bundled extraction Snapshot.js differs from its source."
 [[ -s "${metal_libraries[1]}" ]] \
   || fail "the bundled MLX default.metallib is empty."
 
-source_script="${source_readability_dir}/Readability.js"
-source_license="${source_readability_dir}/LICENSE.md"
-source_metadata="${source_readability_dir}/UPSTREAM.md"
-require_file "${source_script}"
-require_file "${source_license}"
-require_file "${source_metadata}"
-
-metadata_sha="$(sed -nE 's/^- Source SHA-256: `([0-9a-f]{64})`$/\1/p' "${source_metadata}")"
-swift_sha="$(sed -nE 's/^[[:space:]]*"([0-9a-f]{64})"$/\1/p' "${readability_swift}")"
-source_sha="$(shasum -a 256 "${source_script}" | awk '{ print $1 }')"
-packaged_sha="$(shasum -a 256 "${readability_scripts[1]}" | awk '{ print $1 }')"
-print -r -- "${metadata_sha}" | grep -Eq '^[0-9a-f]{64}$' \
-  || fail "UPSTREAM.md does not contain exactly one valid SHA-256."
-[[ "${swift_sha}" == "${metadata_sha}" ]] \
-  || fail "the Swift Readability pin does not match UPSTREAM.md."
-[[ "${source_sha}" == "${metadata_sha}" ]] \
-  || fail "the vendored Readability source does not match UPSTREAM.md."
-[[ "${packaged_sha}" == "${metadata_sha}" ]] \
-  || fail "the bundled Readability source does not match UPSTREAM.md."
-cmp -s "${source_license}" "${readability_licenses[1]}" \
-  || fail "the bundled Readability license differs from the vendored license."
-cmp -s "${source_metadata}" "${readability_metadata_files[1]}" \
-  || fail "the bundled Readability metadata differs from its source."
-grep -Fq "Apache License" "${readability_licenses[1]}" \
-  || fail "the bundled Readability license is not the expected Apache license."
+legacy_extraction_assets=()
+while IFS= read -r -d '' legacy_asset; do
+  legacy_extraction_assets+=("${legacy_asset}")
+done < <(
+  find "${contents_dir}" -type f \
+    \( -iname 'Readability*.js' -o -iname 'Snapshot*.js' \) \
+    -print0
+)
+if (( ${#legacy_extraction_assets[@]} > 0 )); then
+  print -u2 "${(F)legacy_extraction_assets}"
+  fail "the app contains a legacy JavaScript extraction payload."
+fi
 
 forbidden_payloads=()
 while IFS= read -r -d '' payload; do
@@ -180,8 +225,18 @@ done < <(
        -o -iname 'python' \
        -o -iname 'python[0-9]*' \
        -o -iname 'node' \
+       -o -iname 'nodejs' \
        -o -iname 'node_modules' \
+       -o -iname 'npm' \
+       -o -iname 'npx' \
+       -o -iname 'bun' \
+       -o -iname 'deno' \
        -o -iname 'package.json' \
+       -o -iname '.venv' \
+       -o -iname 'venv' \
+       -o -iname 'site-packages' \
+       -o -iname 'pip' \
+       -o -iname 'pip[0-9]*' \
        -o -iname 'uv' \
        -o -iname 'uvicorn*' \
        -o -iname 'fastapi*' \
@@ -192,8 +247,8 @@ if (( ${#forbidden_payloads[@]} > 0 )); then
   print -u2 "${(F)forbidden_payloads}"
   fail "the app contains a Python, Node, server, or external encoder payload."
 fi
-if otool -L "${binary}" | grep -Eqi 'libpython|Python\.framework'; then
-  fail "the app binary links a Python runtime."
+if otool -L "${binary}" | grep -Eqi 'libpython|Python\.framework|libnode|Node\.framework'; then
+  fail "the app binary links a Python or Node runtime."
 fi
 personal_path_pattern='/''Users/[^/]+'
 if LC_ALL=C grep -aR -Eq "${personal_path_pattern}/" "${contents_dir}"; then

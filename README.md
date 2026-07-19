@@ -1,11 +1,7 @@
 # Audio Monster
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/audio-monster-readme-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/images/audio-monster-readme-light.svg">
-    <img src="docs/images/audio-monster-readme-light.svg" width="64" alt="Audio Monster app icon">
-  </picture>
+  <img src="docs/images/audio-monster-app-icon.svg" width="96" alt="Audio Monster app icon">
 </p>
 
 [![CI](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml/badge.svg)](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml)
@@ -30,9 +26,13 @@ with the source URL embedded in its metadata.
 
 The app is Swift from UI to inference. It uses
 [Blaizzy/mlx-audio-swift](https://github.com/Blaizzy/mlx-audio-swift), MLX and
-Metal for speech, Mozilla Readability inside Apple WebKit for article
-extraction, and AVFoundation for playback and encoding. There is no Python,
-Node.js, localhost server, `ffmpeg`, or cloud synthesis service.
+Metal for speech, a native
+[SwiftReadability](https://github.com/wolfyy970/swift-readability) rewrite built
+on SwiftSoup and WebURL for article extraction, and AVFoundation for playback
+and encoding. WebKit hydrates client-rendered pages and returns their rendered
+DOM through a minimal serialization bridge; it does not run the Readability
+algorithm. There is no bundled JavaScript extractor, Python, Node.js, localhost
+server, `ffmpeg`, or cloud synthesis service.
 
 > **Project status:** early preview. The native workflow is functional and
 > extensively tested, and the maintainer release path is automated with
@@ -53,8 +53,11 @@ complete toolchain, but it does not add Intel compatibility.
 
 - Native SwiftUI menu-bar experience with URL entry, cancellation, incremental
   section progress, and progressive playback.
-- Pinned Mozilla Readability 0.6.0 extraction for normal and JavaScript-rendered
-  pages, with a bounded semantic fallback.
+- Browser hydration for client-rendered pages followed by native Swift
+  Readability selection, cleanup, and narration projection.
+- An immutable SwiftReadability revision verified field by field against
+  official Mozilla Readability on all 136 compatibility fixtures, with Audio
+  Monster enhancements isolated behind an explicit opt-in profile.
 - One warm `mlx-community/Kokoro-82M-bf16` model running through MLX Swift and
   Metal.
 - All 54 Kokoro voices, grouped by gender and language, with automatically
@@ -163,19 +166,25 @@ make format-check      # Swift formatting and static boundaries
 make verify            # complete release-quality local gate
 ```
 
-The suites exercise URL validation, rendered extraction fixtures, extractor
-integrity, chunking, the voice catalog, preview batching and cancellation,
-audio metadata, storage and iCloud decisions, playback lifecycle and speed,
-library scanning, and the app-model flow with native fakes. An opt-in live URL
-test is available for local diagnostics:
+The suites exercise URL validation, WebKit hydration and bridge failures,
+native Readability parsing, difficult article structures, narration boundaries,
+extractor cancellation and URL provenance, chunking, the voice catalog,
+preview batching and cancellation, audio metadata, storage and iCloud
+decisions, playback lifecycle and speed, library scanning, and the app-model
+flow with native fakes. The standalone extractor additionally gates its full
+136-input result contract against byte-verified Mozilla sources. An opt-in live
+URL test is available for local diagnostics:
 
 ```sh
 AUDIO_MONSTER_LIVE_WEB_TEST=1 make test
 ```
 
 The complete gate also builds an ad-hoc-signed release app and verifies its
-bundle metadata, signature, icons, MLX Metal library, pinned Readability assets,
-SDK revision, portable paths, and absence of legacy runtime payloads.
+bundle metadata, signature, reproducible icons, the Swift compatibility runtime,
+MLX Metal library, immutable SDK and SwiftReadability revisions, SwiftSoup 2.13.6,
+portable paths, third-party legal
+notices, and the absence of legacy JavaScript, Python, Node, server, or external
+encoder payloads.
 
 ## Developer ID builds
 
