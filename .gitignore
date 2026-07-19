@@ -1,0 +1,43 @@
+.DS_Store
+benchmarks/swift-tts/.build/
+benchmarks/swift-tts/.xcode-derived/
+benchmarks/swift-tts/results/
+dist/
+artifacts/
+
+# Swift
+.build/
+apps/macos/.build/
+.swiftpm/
+.bundle/
+vendor/bundle/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcresult
+*.profraw
+
+# Local configuration, reports, and logs
+.env
+.env.*
+!.env.example
+.envrc
+*.log
+fastlane/README.md
+fastlane/report.xml
+
+# Generated audio and model artifacts
+*.caf
+*.m4a
+*.mp3
+*.wav
+
+# Apple signing material must never be committed.
+*.cer
+*.p12
+*.p8
+*.provisionprofile
+*.mobileprovision
+*.certSigningRequest
+*.key
+*.pem
+*private-key*.pem

@@ -1,0 +1,30 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+
+  - package-ecosystem: swift
+    directory: /apps/macos
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, swift]
+
+  - package-ecosystem: swift
+    directory: /benchmarks/swift-tts
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, swift]
+
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]

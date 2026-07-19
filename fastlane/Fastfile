@@ -1,0 +1,178 @@
+opt_out_usage
+skip_docs
+
+default_platform(:mac)
+repo_root = File.expand_path("..", __dir__)
+build_script = File.join(repo_root, "scripts", "build-macos-app.sh")
+verify_app_script = File.join(repo_root, "scripts", "verify-macos-app.sh")
+verify_repo_script = File.join(repo_root, "scripts", "verify-repository.sh")
+source_info_plist = File.join(repo_root, "apps", "macos", "Resources", "Info.plist")
+app_path = File.join(repo_root, "dist", "Audio Monster.app")
+app_binary = File.join(app_path, "Contents", "MacOS", "AudioMonster")
+artifacts_dir = File.join(repo_root, "artifacts")
+
+platform :mac do
+  private_lane :signing_environment do
+    identity = ENV["AUDIO_MONSTER_SIGNING_IDENTITY"]
+    profile = ENV["AUDIO_MONSTER_PROVISIONING_PROFILE"]
+
+    UI.user_error!("Set AUDIO_MONSTER_SIGNING_IDENTITY to a Developer ID Application identity.") if identity.to_s.empty?
+    UI.user_error!("Set AUDIO_MONSTER_PROVISIONING_PROFILE to the downloaded .provisionprofile file.") if profile.to_s.empty?
+    UI.user_error!("The provisioning profile does not exist at #{profile}.") unless File.file?(File.expand_path(profile))
+
+    { identity: identity, profile: File.expand_path(profile) }
+  end
+
+  private_lane :notary_environment do
+    key_id = ENV["AUDIO_MONSTER_ASC_KEY_ID"]
+    issuer_id = ENV["AUDIO_MONSTER_ASC_ISSUER_ID"]
+    key_path = ENV["AUDIO_MONSTER_ASC_KEY_PATH"]
+    api_values = [key_id, issuer_id, key_path]
+
+    if api_values.any? { |value| !value.to_s.empty? }
+      UI.user_error!("Set AUDIO_MONSTER_ASC_KEY_ID, AUDIO_MONSTER_ASC_ISSUER_ID, and AUDIO_MONSTER_ASC_KEY_PATH together.") unless api_values.all? { |value| !value.to_s.empty? }
+
+      expanded_key_path = File.expand_path(key_path)
+      UI.user_error!("The App Store Connect API key does not exist at #{expanded_key_path}.") unless File.file?(expanded_key_path)
+      next {
+        mode: :api_key,
+        key_id: key_id,
+        issuer_id: issuer_id,
+        key_path: expanded_key_path
+      }
+    end
+
+    apple_id = ENV["AUDIO_MONSTER_NOTARY_APPLE_ID"]
+    team_id = ENV["AUDIO_MONSTER_NOTARY_TEAM_ID"]
+    app_password = ENV["FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"]
+    UI.user_error!(
+      "Configure an App Store Connect API key, or set AUDIO_MONSTER_NOTARY_APPLE_ID, AUDIO_MONSTER_NOTARY_TEAM_ID, and FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD."
+    ) if [apple_id, team_id, app_password].any? { |value| value.to_s.empty? }
+
+    { mode: :apple_id, apple_id: apple_id, team_id: team_id }
+  end
+
+  private_lane :source_version do
+    version = sh(
+      "/usr/libexec/PlistBuddy",
+      "-c",
+      "Print :CFBundleShortVersionString",
+      source_info_plist,
+      log: false
+    ).strip
+    UI.user_error!("Invalid CFBundleShortVersionString: #{version}") unless version.match?(/\A\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\z/)
+    version
+  end
+
+  desc "Build and verify the local ad-hoc-signed app"
+  lane :build do
+    sh(build_script, "release")
+    sh(verify_app_script)
+  end
+
+  desc "Build and verify a Developer ID-signed app with iCloud Documents"
+  lane :signed do
+    signing_environment
+    sh(build_script, "release")
+    sh(verify_app_script)
+  end
+
+  desc "Test, sign, notarize, staple, and package a release-ready ZIP"
+  lane :release do
+    signing_environment
+    notary = notary_environment
+    version = source_version
+
+    if File.executable?(app_binary) && system("lsof", "-t", app_binary, out: File::NULL, err: File::NULL)
+      UI.user_error!("Quit Audio Monster before replacing and notarizing the app in dist/.")
+    end
+
+    sh(verify_repo_script, "static")
+    sh(verify_repo_script, "app-tests")
+    sh(verify_repo_script, "benchmark-tests")
+    sh(build_script, "release")
+    sh(verify_app_script)
+
+    if notary[:mode] == :api_key
+      api_key = app_store_connect_api_key(
+        key_id: notary[:key_id],
+        issuer_id: notary[:issuer_id],
+        key_filepath: notary[:key_path],
+        in_house: false
+      )
+      notarize(package: app_path, api_key: api_key, print_log: true)
+    else
+      notarize(
+        package: app_path,
+        username: notary[:apple_id],
+        asc_provider: notary[:team_id],
+        print_log: true
+      )
+    end
+
+    # The notarize action uses this archive for submission. The final archive
+    # must be created after stapling so the ticket travels with the app.
+    FileUtils.rm_f("#{app_path}.zip")
+    sh("xcrun", "stapler", "validate", app_path)
+    sh("codesign", "--verify", "--deep", "--strict", app_path)
+    sh("spctl", "--assess", "--type", "execute", "--verbose=4", app_path)
+    sh(verify_app_script)
+
+    architecture = sh("lipo", "-archs", app_binary, log: false).strip
+    UI.user_error!("Release binary has unexpected architectures: #{architecture}") unless architecture == "arm64"
+
+    FileUtils.mkdir_p(artifacts_dir)
+    archive_name = "Audio-Monster-v#{version}-macOS-arm64.zip"
+    archive_path = File.join(artifacts_dir, archive_name)
+    checksum_path = "#{archive_path}.sha256"
+    FileUtils.rm_f(archive_path)
+    FileUtils.rm_f(checksum_path)
+    sh("ditto", "-c", "-k", "--rsrc", "--keepParent", app_path, archive_path)
+    sh("unzip", "-tq", archive_path)
+
+    checksum = sh("shasum", "-a", "256", archive_path, log: false).split.first
+    File.write(checksum_path, "#{checksum}  #{archive_name}\n")
+
+    UI.success("Release artifact: #{archive_path}")
+    UI.success("SHA-256: #{checksum}")
+    {
+      archive: archive_path,
+      checksum: checksum_path,
+      version: version,
+      tag: "v#{version}"
+    }
+  end
+
+  desc "Create a draft GitHub release from a clean, tagged revision"
+  lane :publish do
+    repository = ENV["AUDIO_MONSTER_GITHUB_REPOSITORY"]
+    github_token = ENV["FL_GITHUB_RELEASE_API_TOKEN"]
+    UI.user_error!("Set AUDIO_MONSTER_GITHUB_REPOSITORY to owner/audio-monster.") if repository.to_s.empty?
+    UI.user_error!("Set FL_GITHUB_RELEASE_API_TOKEN to a GitHub token allowed to create releases.") if github_token.to_s.empty?
+
+    status = sh("git", "status", "--porcelain", log: false).strip
+    UI.user_error!("Commit or remove every repository change before publishing.") unless status.empty?
+
+    version = source_version
+    tag = "v#{version}"
+    sh("git", "rev-parse", "--verify", "refs/tags/#{tag}", log: false)
+    publication = release
+
+    result = set_github_release(
+      repository_name: repository,
+      api_token: github_token,
+      tag_name: tag,
+      name: "Audio Monster #{tag}",
+      is_draft: true,
+      is_prerelease: version.start_with?("0."),
+      is_generate_release_notes: true,
+      upload_assets: [publication[:archive], publication[:checksum]]
+    )
+    UI.success("Draft release: #{result['html_url'] || result[:html_url]}")
+  end
+
+  desc "Run the complete repository verification gate"
+  lane :verify do
+    sh(verify_repo_script)
+  end
+end
