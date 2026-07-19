@@ -5,11 +5,11 @@
 </p>
 
 [![CI](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml/badge.svg)](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/wolfyy970/audio-monster?include_prereleases&sort=semver)](https://github.com/wolfyy970/audio-monster/releases)
+[![Release v0.1.0](https://img.shields.io/badge/Release-v0.1.0-2ea44f.svg)](https://github.com/wolfyy970/audio-monster/releases/tag/v0.1.0)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
 ![Apple Silicon required](https://img.shields.io/badge/Apple%20Silicon-required-000000?logo=apple&logoColor=white)
 ![Swift 6.2](https://img.shields.io/badge/Swift-6.2-F05138?logo=swift&logoColor=white)
-![Python not required](https://img.shields.io/badge/Python-not%20required-3776AB?logo=python&logoColor=white)
+![Python not required](https://img.shields.io/badge/Python-not_required-3776AB.svg)
 [![MIT License](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
 
 > [!IMPORTANT]
