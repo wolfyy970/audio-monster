@@ -1,5 +1,9 @@
 # Audio Monster
 
+<p align="center">
+  <img src="apps/macos/Resources/AudioMonsterMenuBarTemplate@2x.png" width="64" alt="Audio Monster app icon">
+</p>
+
 [![CI](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml/badge.svg)](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/wolfyy970/audio-monster?include_prereleases&sort=semver)](https://github.com/wolfyy970/audio-monster/releases)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
@@ -12,6 +16,10 @@
 > **Audio Monster requires an Apple Silicon Mac (M1 or newer) running macOS 14
 > or later.** Intel Macs are not supported because MLX and MLX Audio Swift are
 > designed for Apple Silicon. There is no Intel or universal build.
+
+<p align="center">
+  <img src="docs/images/audio-monster-menu.png" width="1184" alt="Audio Monster menu-bar application showing URL entry and the saved-audio library">
+</p>
 
 Audio Monster is a native macOS menu-bar app that turns web articles into
 listenable audio. Paste a URL, press Return, and it extracts the readable text,
@@ -209,3 +217,20 @@ User-visible changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 Audio Monster is available under the [MIT License](LICENSE). Bundled and
 downloaded components retain their own terms; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Disclosure
+
+**Audio Monster was vibe-coded with intent.** It was developed through close
+human–AI collaboration, with human judgment retained at every consequential
+step. AI accelerated implementation; it did not replace engineering
+responsibility.
+
+“With intent” means the work did not stop when generated code appeared to run.
+The application was deliberately architected, reviewed, refactored, protected
+by unit and integration tests and clean-build CI, audited for secrets and
+vulnerable dependencies, and distributed through a signed and notarized release
+process.
+
+Vibe coding may describe how software begins, but it should never excuse how
+software ships. The maintainers remain accountable for the result without
+claiming perfection. Corrections and improvements are welcome.
