@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="143" height="20" role="img" aria-label="Python: not required">
+  <title>Python: not required</title>
+  <mask id="round">
+    <rect width="143" height="20" rx="3" fill="#fff" />
+  </mask>
+  <g mask="url(#round)">
+    <rect width="52" height="20" fill="#555" />
+    <rect x="52" width="91" height="20" fill="#3776ab" />
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">
+    <text x="26" y="14">Python</text>
+    <text x="97.5" y="14">not required</text>
+  </g>
+</svg>
