@@ -24,7 +24,7 @@
 </p>
 
 Audio Monster is a native macOS menu-bar app that turns web articles into
-listenable audio. Paste a URL, press Return, and it extracts the readable text,
+narrated audio. Paste a URL, hit Return, and it extracts the readable text,
 narrates it locally with Kokoro on Apple Silicon, and saves a sensibly named M4A
 with the source URL embedded in its metadata.
 
@@ -115,7 +115,7 @@ bundle exec fastlane mac verify
 ## Using the app
 
 1. Click the monster in the menu bar.
-2. Paste a public `http://` or `https://` article URL and press Return.
+2. Paste a public `http://` or `https://` article URL and hit Return.
 3. Listen as completed sections become available, or wait for the saved M4A.
 4. Open Settings to choose and preview a voice, set playback speed and autoplay,
    or select a save folder.
