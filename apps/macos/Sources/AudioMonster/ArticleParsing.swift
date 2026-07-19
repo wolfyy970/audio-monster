@@ -29,6 +29,16 @@ protocol ArticleParsing: Sendable {
 /// No SwiftSoup or Readability reference crosses the concurrency boundary, so a
 /// caller on the main actor never performs document parsing or article scoring.
 struct SwiftReadabilityArticleParser: ArticleParsing, Sendable {
+    /// Application-owned policy layered on top of SwiftReadability's empty,
+    /// Mozilla-compatible default extension set.
+    static let readabilityExtensions: ReadabilityExtensions = [
+        .imageCarouselRecovery,
+        .publisherChromeCleanup,
+        .articleBodyPreservation,
+        .significantMediaPreservation,
+        .rubyNormalization,
+    ]
+
     private let maximumElements: Int
     private let topCandidateCount: Int
     private let characterThreshold: Int
@@ -68,7 +78,7 @@ struct SwiftReadabilityArticleParser: ArticleParsing, Sendable {
                 maxElemsToParse: maximumElements,
                 nbTopCandidates: topCandidateCount,
                 charThreshold: characterThreshold,
-                extensions: .audioMonster
+                extensions: Self.readabilityExtensions
             )
             guard
                 let result = try Readability(

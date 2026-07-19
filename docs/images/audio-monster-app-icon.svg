@@ -2,7 +2,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <title>Audio Monster app icon</title>
   <rect x="48" y="48" width="928" height="928" rx="224" fill="#111111"/>
-  <!-- The monster path is the existing Audio Monster vector artwork, unchanged. -->
   <g transform="translate(236 220) scale(0.9710 0.9730)">
     <g transform="translate(-0.806616,587.991139) scale(0.100000,-0.100000)" fill="#ffffff">
       <path d="M393 5860 c-18 -10 -39 -33 -48 -50 -10 -19 -45 -232 -91 -553 -92

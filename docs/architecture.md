@@ -74,10 +74,10 @@ session off the main actor. The package is pinned by immutable revision, uses
 SwiftSoup 2.13.6, and treats Mozilla Readability commit
 [`ab4027a8b37669745016869a37a504727992b2ba`](https://github.com/mozilla/readability/commit/ab4027a8b37669745016869a37a504727992b2ba)
 as its behavioral specification. Default mode matches Mozilla across all observable
-fields on 136/136 compatibility inputs. Audio Monster deliberately opts into
-the separately tested `.audioMonster` profile for publisher chrome, carousel,
-media, article-body, and ruby handling; those additions cannot alter the
-package's default Mozilla contract.
+fields on 136/136 compatibility inputs. Audio Monster owns and explicitly
+composes the granular publisher-chrome, carousel, media, article-body, and ruby
+extensions at its parser boundary; SwiftReadability contains no app-specific
+preset, and those additions cannot alter the package's default Mozilla contract.
 
 Third, `NarrationTextProjector` converts the extracted HTML to speech-oriented
 plain text. Readability's opt-in cleanup removes publisher chrome before this

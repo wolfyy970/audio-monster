@@ -57,7 +57,7 @@ complete toolchain, but it does not add Intel compatibility.
   Readability selection, cleanup, and narration projection.
 - An immutable SwiftReadability revision verified field by field against
   official Mozilla Readability on all 136 compatibility fixtures, with Audio
-  Monster enhancements isolated behind an explicit opt-in profile.
+  Monster owning its explicit opt-in extension policy.
 - One warm `mlx-community/Kokoro-82M-bf16` model running through MLX Swift and
   Metal.
 - All 54 Kokoro voices, grouped by gender and language, with automatically

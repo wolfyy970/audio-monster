@@ -4,6 +4,14 @@ Notable user-facing changes to Audio Monster are documented here. The project
 follows [Semantic Versioning](https://semver.org/) while its public API and user
 experience mature.
 
+## [0.2.1] - 2026-07-20
+
+### Changed
+
+- Updated to SwiftReadability 0.3.1 and made the selected publisher and media
+  recovery behavior an explicit application-owned policy.
+- Preserved the existing native article-extraction behavior.
+
 ## [0.2.0] - 2026-07-20
 
 ### Changed
@@ -16,9 +24,9 @@ experience mature.
 - Pinned SwiftSoup 2.13.6 and WebURL 0.4.2, then verified the Swift extractor's
   exact serialized content, scalar results, and canonical content DOM against
   official Mozilla Readability across all 136 compatibility fixtures.
-- Isolated Audio Monster's publisher and media recovery rules behind an explicit
-  opt-in extension profile so default SwiftReadability behavior remains Mozilla
-  compatible.
+- Isolated Audio Monster's publisher and media recovery rules behind an
+  app-owned opt-in extension policy so default SwiftReadability behavior remains
+  Mozilla compatible.
 - Preserved Readability-selected tables of contents, editorial asides, and
   correction footers while rejecting navigation-only pages and browser
   challenges without suppressing legitimate articles with challenge-like titles.
@@ -46,5 +54,6 @@ experience mature.
 - Native test suites, benchmark harness, signed-release verification, Fastlane
   notarization, and GitHub repository automation.
 
+[0.2.1]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.1
 [0.2.0]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.0
 [0.1.0]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.1.0

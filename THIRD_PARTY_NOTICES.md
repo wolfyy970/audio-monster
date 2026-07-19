@@ -15,9 +15,9 @@ versions.
 
 - [SwiftReadability](https://github.com/wolfyy970/swift-readability), BSD
   3-Clause. Copyright © 2025 Lake of Fire. Audio Monster pins revision
-  `ecff27c6939beadc5c95e6c08ef8e744109817a6` and links only its native Swift
-  product. The package preserves the intermediate port's attribution and is
-  governed behaviorally by Mozilla Readability commit
+  `5c81783fb9c73ec853f678223f955058df4a0d01` and links only its native Swift
+  product. The fork preserves its upstream BSD attribution and history, and its
+  compatibility baseline is Mozilla Readability commit
   [`ab4027a8b37669745016869a37a504727992b2ba`](https://github.com/mozilla/readability/commit/ab4027a8b37669745016869a37a504727992b2ba).
 - [Mozilla Readability](https://github.com/mozilla/readability), Apache License
   2.0. Copyright © 2010 Arc90 Inc. Its official source is the differential-test

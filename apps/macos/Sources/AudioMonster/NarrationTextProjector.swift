@@ -20,8 +20,8 @@ struct NarrationTextProjector: Sendable {
     ///
     /// Generic `header` elements are intentionally absent: an article header
     /// often contains its headline and standfirst. Publisher cleanup belongs in
-    /// Readability's explicit Audio Monster extension profile, while this list is
-    /// limited to semantic chrome, controls, executable content, and ruby hints.
+    /// the application's opt-in Readability policy, while this list is limited to
+    /// semantic chrome, controls, executable content, and ruby hints.
     private static let excludedTags: Set<String> = [
         "audio", "button", "canvas", "embed", "form", "iframe", "input",
         "noscript", "object", "option", "rp", "rt", "script",
