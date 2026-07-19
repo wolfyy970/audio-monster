@@ -1,5 +1,18 @@
 # Audio Monster
 
+[![CI](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml/badge.svg)](https://github.com/wolfyy970/audio-monster/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/wolfyy970/audio-monster?include_prereleases&sort=semver)](https://github.com/wolfyy970/audio-monster/releases)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
+![Apple Silicon required](https://img.shields.io/badge/Apple%20Silicon-required-000000?logo=apple&logoColor=white)
+![Swift 6.2](https://img.shields.io/badge/Swift-6.2-F05138?logo=swift&logoColor=white)
+![Python not required](https://img.shields.io/badge/Python-not%20required-3776AB?logo=python&logoColor=white)
+[![MIT License](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
+
+> [!IMPORTANT]
+> **Audio Monster requires an Apple Silicon Mac (M1 or newer) running macOS 14
+> or later.** Intel Macs are not supported because MLX and MLX Audio Swift are
+> designed for Apple Silicon. There is no Intel or universal build.
+
 Audio Monster is a native macOS menu-bar app that turns web articles into
 listenable audio. Paste a URL, press Return, and it extracts the readable text,
 narrates it locally with Kokoro on Apple Silicon, and saves a sensibly named M4A
@@ -22,8 +35,9 @@ Download the latest signed and Apple-notarized build from
 move **Audio Monster.app** to Applications, and launch it normally. Release ZIPs
 include a SHA-256 checksum alongside the app.
 
-Audio Monster currently ships for Apple Silicon. Building from source remains
-available for contributors and anyone who prefers to inspect the complete toolchain.
+Every Audio Monster release is ARM64-only for Apple Silicon. Building from
+source remains available for contributors and anyone who prefers to inspect the
+complete toolchain, but it does not add Intel compatibility.
 
 ## Highlights
 
@@ -47,7 +61,7 @@ available for contributors and anyone who prefers to inspect the complete toolch
 
 ## Requirements
 
-- Apple Silicon Mac
+- Apple Silicon Mac (M1 or newer; Intel is unsupported)
 - macOS 14 or later
 - Xcode with the Metal Toolchain installed
 - Swift 6.2 or later
