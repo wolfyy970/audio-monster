@@ -2,9 +2,9 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/audio-monster-readme-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/images/audio-monster-readme-light.png">
-    <img src="docs/images/audio-monster-readme-light.png" width="64" alt="Audio Monster app icon">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/audio-monster-readme-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/audio-monster-readme-light.svg">
+    <img src="docs/images/audio-monster-readme-light.svg" width="64" alt="Audio Monster app icon">
   </picture>
 </p>
 
