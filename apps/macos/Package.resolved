@@ -122,7 +122,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wolfyy970/swift-readability.git",
       "state" : {
-        "revision" : "5c81783fb9c73ec853f678223f955058df4a0d01"
+        "revision" : "2cf911516ef5dfd8abba4fac953bf0c546c0a60a"
       }
     },
     {

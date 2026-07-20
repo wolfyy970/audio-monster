@@ -65,7 +65,7 @@ public struct BrowserExtractionPolicy: Sendable {
         inspectionInterval: Duration = .milliseconds(400),
         webViewWidth: Double = 1_280,
         webViewHeight: Double = 900,
-        applicationNameForUserAgent: String = "AudioMonster/0.2.1"
+        applicationNameForUserAgent: String = "AudioMonster/0.2.2"
     ) {
         stability = SnapshotStabilityPolicy(
             minimumReadableCharacterCount: minimumReadableCharacterCount,

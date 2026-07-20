@@ -5,7 +5,7 @@ import Testing
 @testable import AudioMonster
 
 @MainActor
-struct NativeExtractionIntegrationTests {
+extension WebKitBackedExtractionTests {
     private var fastPolicy: BrowserExtractionPolicy {
         BrowserExtractionPolicy(
             timeout: .seconds(5),

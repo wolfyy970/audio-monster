@@ -4,7 +4,7 @@ import Testing
 @testable import AudioMonster
 
 @MainActor
-struct BrowserPageRendererIntegrationTests {
+extension WebKitBackedExtractionTests {
     @Test(
         .enabled(
             if: ProcessInfo.processInfo.environment["AUDIO_MONSTER_LIVE_WEB_TEST"] == "1",

@@ -83,6 +83,23 @@ verify_repository_metadata() {
     "${repo_root}/apps/macos/Resources/Info.plist" \
     "${repo_root}/apps/macos/Resources/AudioMonster.entitlements" \
     >/dev/null
+
+  local app_version expected_user_agent
+  app_version="$(
+    /usr/libexec/PlistBuddy \
+      -c 'Print :CFBundleShortVersionString' \
+      "${repo_root}/apps/macos/Resources/Info.plist"
+  )"
+  expected_user_agent="applicationNameForUserAgent: String = \"AudioMonster/${app_version}\""
+  grep -Fq \
+    "${expected_user_agent}" \
+    "${repo_root}/apps/macos/Sources/AudioMonsterCore/BrowserExtractionPolicy.swift" \
+    || {
+      print -u2 "The browser user-agent version does not match Info.plist ${app_version}."
+      exit 1
+    }
+
+  ruby -c "${repo_root}/fastlane/Fastfile" >/dev/null
   zsh -n "${repo_root}"/scripts/*.sh "${repo_root}"/scripts/tests/*.sh
 
   local personal_path_pattern='/''Users/[^/]+'

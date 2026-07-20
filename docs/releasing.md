@@ -102,9 +102,11 @@ bundle exec fastlane mac publish
 
 The lane requires the local tag, `HEAD`, and the peeled tag on `origin` to be the
 same commit both before and after the release build. It then creates a **draft**
-GitHub prerelease with generated notes, the ZIP, and its checksum. A maintainer
-must review and publish that draft in GitHub. The lane will not create an
-implicit tag, accept an unpushed tag, or publish a dirty working tree.
+GitHub release with generated notes, the ZIP, and its checksum. A zero major
+version is not automatically marked as a prerelease. A maintainer must review
+and publish that draft in GitHub; a genuinely prerelease-only build can be
+marked as such while reviewing the draft. The lane will not create an implicit
+tag, accept an unpushed tag, or publish a dirty working tree.
 
 ## Release checklist
 
@@ -112,7 +114,8 @@ implicit tag, accept an unpushed tag, or publish a dirty working tree.
 2. Commit the complete change, create the matching version tag, and push both
    the commit and tag to `origin`.
 3. Quit the running app.
-4. Run `make release` and inspect the artifact locally.
-5. Launch the Fastlane-verified ZIP through Finder on a clean Mac.
-6. Run the publish lane and review the draft release.
-7. Publish the GitHub release only after the download is tested on another Mac.
+4. Run the publish lane, which rebuilds, tests, signs, notarizes, verifies, and
+   uploads the release as a draft.
+5. Review the draft release and verify its checksum.
+6. Download and launch that exact draft asset through Finder on another Mac.
+7. Publish the GitHub release only after the downloaded asset passes.

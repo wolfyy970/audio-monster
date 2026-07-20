@@ -62,7 +62,7 @@ platform :mac do
       source_info_plist,
       log: false
     ).strip
-    UI.user_error!("Invalid CFBundleShortVersionString: #{version}") unless version.match?(/\A\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\z/)
+    UI.user_error!("Invalid CFBundleShortVersionString: #{version}") unless version.match?(/\A\d+\.\d+\.\d+\z/)
     version
   end
 
@@ -225,7 +225,9 @@ platform :mac do
       tag_name: tag,
       name: "Audio Monster #{tag}",
       is_draft: true,
-      is_prerelease: version.start_with?("0."),
+      # A zero major version is still a normal GitHub release. If a future
+      # release is genuinely prerelease-only, mark the reviewed draft in GitHub.
+      is_prerelease: false,
       is_generate_release_notes: true,
       upload_assets: [publication[:archive], publication[:checksum]]
     )

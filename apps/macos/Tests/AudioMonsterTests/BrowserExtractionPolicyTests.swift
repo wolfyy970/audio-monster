@@ -5,7 +5,7 @@ import Testing
 @testable import AudioMonster
 
 @MainActor
-struct BrowserPageRendererLifecycleTests {
+extension WebKitBackedExtractionTests {
     private var fastPolicy: BrowserExtractionPolicy {
         BrowserExtractionPolicy(
             minimumReadableCharacterCount: 40,
