@@ -231,17 +231,6 @@ downloaded components retain their own terms; see
 
 ## Disclosure
 
-**Audio Monster was vibe-coded with intent.** It was developed through close
-human–AI collaboration, with human judgment retained at every consequential
-step. AI accelerated implementation; it did not replace engineering
-responsibility.
-
-“With intent” means the work did not stop when generated code appeared to run.
-The application was deliberately architected, reviewed, refactored, protected
-by unit and integration tests and clean-build CI, audited for secrets and
-vulnerable dependencies, and distributed through a signed and notarized release
-process.
-
-Vibe coding may describe how software begins, but it should never excuse how
-software ships. The maintainers remain accountable for the result without
-claiming perfection. Corrections and improvements are welcome.
+**This repository was vibe-coded with intent.** LLMs authored code under human
+direction and review. The work is tested, not presumed perfect. Issues,
+corrections, and contributions are welcome.

@@ -19,7 +19,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/wolfyy970/swift-readability.git",
-            revision: "2cf911516ef5dfd8abba4fac953bf0c546c0a60a"
+            revision: "531c4adbb342def2904440df13da06ee2258d697"
         ),
         .package(
             url: "https://github.com/scinfu/SwiftSoup.git",

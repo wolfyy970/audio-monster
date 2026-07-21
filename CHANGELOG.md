@@ -4,6 +4,16 @@ Notable user-facing changes to Audio Monster are documented here. The project
 follows [Semantic Versioning](https://semver.org/) while its public API and user
 experience mature.
 
+## [0.2.3] - 2026-07-21
+
+### Changed
+
+- Updated the immutable SwiftReadability dependency to release 0.3.3, adopting
+  its semantic-output quality and maintainability rewrite while preserving
+  public API compatibility.
+- Tightened the project disclosure to state plainly how LLM-authored work is
+  directed, reviewed, tested, and opened to correction and contribution.
+
 ## [0.2.2] - 2026-07-20
 
 ### Changed
@@ -65,6 +75,7 @@ experience mature.
 - Native test suites, benchmark harness, signed-release verification, Fastlane
   notarization, and GitHub repository automation.
 
+[0.2.3]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.3
 [0.2.2]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.2
 [0.2.1]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.1
 [0.2.0]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.0

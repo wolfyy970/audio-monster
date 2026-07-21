@@ -55,10 +55,10 @@ zsh "${verifier}" >/dev/null \
   || fail "the checked-in dependency graph should pass."
 
 sed -i '' \
-  's/2cf911516ef5dfd8abba4fac953bf0c546c0a60a/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/' \
+  's/531c4adbb342def2904440df13da06ee2258d697/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/' \
   "${fixture_manifest}"
 expect_failure "a changed SwiftReadability manifest revision" \
-  "expected 2cf911516ef5dfd8abba4fac953bf0c546c0a60a"
+  "expected 531c4adbb342def2904440df13da06ee2258d697"
 cp "${original_manifest}" "${fixture_manifest}"
 
 sed -i '' \
@@ -69,10 +69,10 @@ expect_failure "a changed SwiftReadability source URL" \
 cp "${original_manifest}" "${fixture_manifest}"
 
 sed -i '' \
-  's/2cf911516ef5dfd8abba4fac953bf0c546c0a60a/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/' \
+  's/531c4adbb342def2904440df13da06ee2258d697/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/' \
   "${fixture_resolved}"
 expect_failure "a changed SwiftReadability resolved revision" \
-  "expected 2cf911516ef5dfd8abba4fac953bf0c546c0a60a"
+  "expected 531c4adbb342def2904440df13da06ee2258d697"
 cp "${original_resolved}" "${fixture_resolved}"
 
 sed -i '' 's/exact: "2.13.6"/exact: "2.13.5"/' "${fixture_manifest}"
