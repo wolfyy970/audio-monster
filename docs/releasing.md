@@ -8,15 +8,32 @@ verification, a Developer ID build, bundle verification, Apple notarization,
 ticket stapling, Gatekeeper assessment, archive validation, and SHA-256
 generation. It then extracts the final ZIP and repeats signature, notarization,
 Gatekeeper, architecture, and bundle checks against the exact app users will
-download. It produces:
+download. It also creates, notarizes, and staples a drag-to-Applications disk
+image. It produces:
 
 ```text
 artifacts/Audio-Monster-v<VERSION>-macOS-arm64.zip
 artifacts/Audio-Monster-v<VERSION>-macOS-arm64.zip.sha256
+artifacts/Audio-Monster-v<VERSION>-macOS-arm64.dmg
+artifacts/Audio-Monster-v<VERSION>-macOS-arm64.dmg.sha256
 ```
 
 The version comes from `CFBundleShortVersionString` in the source `Info.plist`.
 The app must not be running from `dist/` during a release.
+
+## Create a drag-to-install image
+
+For a polished local installer, build the app and create a disk image:
+
+```sh
+make build-app
+make package-dmg
+open "dist/Audio Monster.dmg"
+```
+
+The image contains Audio Monster and an Applications shortcut, with the Finder
+window arranged for the familiar drag-the-app-to-Applications workflow. This
+step does not modify an existing installed copy.
 
 ## Install the pinned Fastlane toolchain
 
@@ -102,11 +119,12 @@ bundle exec fastlane mac publish
 
 The lane requires the local tag, `HEAD`, and the peeled tag on `origin` to be the
 same commit both before and after the release build. It then creates a **draft**
-GitHub release with generated notes, the ZIP, and its checksum. A zero major
-version is not automatically marked as a prerelease. A maintainer must review
-and publish that draft in GitHub; a genuinely prerelease-only build can be
-marked as such while reviewing the draft. The lane will not create an implicit
-tag, accept an unpushed tag, or publish a dirty working tree.
+GitHub release with generated notes, the ZIP, its checksum, the drag-to-
+Applications DMG, and the DMG checksum. A zero major version is not
+automatically marked as a prerelease. A maintainer must review and publish that
+draft in GitHub; a genuinely prerelease-only build can be marked as such while
+reviewing the draft. The lane will not create an implicit tag, accept an
+unpushed tag, or publish a dirty working tree.
 
 ## Release checklist
 

@@ -7,23 +7,23 @@ struct ConversionJobCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline) {
-                Text(job.title ?? job.url.host() ?? "Web page")
+                Text(job.title ?? job.url?.host() ?? job.origin.displayName)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(2)
                 Spacer(minLength: 8)
-                Text(model.isRenderingWebPage ? "Opening page" : job.status.label)
+                Text(model.isResolvingInput ? "Reading input" : job.status.label)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(
-                        job.status == .failed && !model.isRenderingWebPage
+                        job.status == .failed && !model.isResolvingInput
                             ? Color.red
                             : Color.secondary
                     )
             }
 
-            if model.isRenderingWebPage {
+            if model.isResolvingInput {
                 ProgressView()
                     .progressViewStyle(.linear)
-                Text("Passing the website’s browser check and reading the rendered page…")
+                Text("Reading the selected input and preparing it for narration…")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else if !job.status.isTerminal {
@@ -35,7 +35,7 @@ struct ConversionJobCard: View {
             }
 
             HStack {
-                if model.isRenderingWebPage {
+                if model.isResolvingInput {
                     Button("Cancel", role: .destructive, action: model.cancelCurrentJob)
                         .buttonStyle(.bordered)
                 } else if job.status == .completed {
@@ -78,7 +78,7 @@ struct ConversionJobCard: View {
                 }
             }
 
-            if !model.isRenderingWebPage
+            if !model.isResolvingInput
                 && (job.segmentsReady > 0 || job.status == .completed)
             {
                 PlaybackRateControl(value: $model.playbackRate, presentation: .conversion)

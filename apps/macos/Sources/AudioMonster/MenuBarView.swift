@@ -5,6 +5,9 @@ struct MenuBarView: View {
     @Environment(\.openSettings) private var openSettings
     @EnvironmentObject private var model: AppModel
     @FocusState private var isURLFieldFocused: Bool
+    @State private var isShowingPasteEditor = false
+    @State private var pastedTitle = ""
+    @State private var pastedText = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -35,6 +38,9 @@ struct MenuBarView: View {
             await model.startIfNeeded()
             isURLFieldFocused = true
         }
+        .sheet(isPresented: $isShowingPasteEditor) {
+            pasteEditor
+        }
     }
 
     private var header: some View {
@@ -62,7 +68,57 @@ struct MenuBarView: View {
             .buttonStyle(.borderedProminent)
             .disabled(model.inputURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isWorking)
             .help("Create audio")
+
+            Button(action: openPasteEditor) {
+                Label("Paste text", systemImage: "doc.on.clipboard")
+            }
+            .buttonStyle(.bordered)
+            .disabled(model.isWorking)
+
+            Button(action: model.openDocument) {
+                Label("Open file", systemImage: "folder")
+            }
+            .buttonStyle(.bordered)
+            .disabled(model.isWorking)
         }
+    }
+
+    private var pasteEditor: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Paste text")
+                .font(.headline)
+
+            TextField("Optional title", text: $pastedTitle)
+                .textFieldStyle(.roundedBorder)
+
+            TextEditor(text: $pastedText)
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .padding(6)
+                .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
+                .frame(minHeight: 240)
+
+            HStack {
+                Button("Cancel") {
+                    isShowingPasteEditor = false
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Spacer()
+
+                Button("Create audio") {
+                    model.submitPastedText(title: pastedTitle, text: pastedText)
+                    if model.errorMessage == nil {
+                        isShowingPasteEditor = false
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 520)
     }
 
     private var emptyState: some View {
@@ -104,5 +160,11 @@ struct MenuBarView: View {
         DispatchQueue.main.async {
             SettingsWindowPresenter.shared.bringToFront()
         }
+    }
+
+    private func openPasteEditor() {
+        pastedTitle = ""
+        pastedText = NSPasteboard.general.string(forType: .string) ?? ""
+        isShowingPasteEditor = true
     }
 }

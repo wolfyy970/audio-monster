@@ -19,10 +19,10 @@
   <img src="docs/images/audio-monster-menu.png" width="1184" alt="Audio Monster menu-bar application showing URL entry and the saved-audio library">
 </p>
 
-Audio Monster is a native macOS menu-bar app that turns web articles into
-narrated audio. Paste a URL, hit Return, and it extracts the readable text,
-narrates it locally with Kokoro on Apple Silicon, and saves a sensibly named M4A
-with the source URL embedded in its metadata.
+Audio Monster is a native macOS menu-bar app that turns readable content into
+narrated audio. Paste a URL, open a supported document, or paste text directly;
+Audio Monster extracts or normalizes the content, narrates it locally with
+Kokoro on Apple Silicon, and saves a sensibly named M4A.
 
 The app is Swift from UI to inference. It uses
 [Blaizzy/mlx-audio-swift](https://github.com/Blaizzy/mlx-audio-swift), MLX and
@@ -41,9 +41,9 @@ server, `ffmpeg`, or cloud synthesis service.
 ## Download
 
 Download the latest signed and Apple-notarized build from
-[GitHub Releases](https://github.com/wolfyy970/audio-monster/releases). Unzip it,
-move **Audio Monster.app** to Applications, and launch it normally. Release ZIPs
-include a SHA-256 checksum alongside the app.
+[GitHub Releases](https://github.com/wolfyy970/audio-monster/releases). The DMG
+offers the familiar drag-to-Applications install; the ZIP is also available for
+scripted installs. Both release artifacts include a SHA-256 checksum.
 
 Every Audio Monster release is ARM64-only for Apple Silicon. Building from
 source remains available for contributors and anyone who prefers to inspect the
@@ -53,6 +53,15 @@ complete toolchain, but it does not add Intel compatibility.
 
 - Native SwiftUI menu-bar experience with URL entry, cancellation, incremental
   section progress, and progressive playback.
+- One conversion seam for web URLs, pasted text, plain text, Markdown, RTF/RTFD,
+  and selectable-text PDFs.
+- Markdown projection that speaks the document's content without reading most
+  markup punctuation aloud.
+- Guardrails for local documents: 10 MiB source/package limit, 5 MiB decoded
+  text limit, cancellation checks, symlink rejection, and clear unsupported or
+  scanned-PDF errors.
+- Settings for Open at Login and Dock visibility, including a button that opens
+  macOS Login Items when Apple requires user approval.
 - Browser hydration for client-rendered pages followed by native Swift
   Readability selection, cleanup, and narration projection.
 - An immutable SwiftReadability revision verified field by field against
@@ -102,6 +111,13 @@ For a release configuration without launching:
 make build-app
 ```
 
+To create a familiar drag-to-Applications installer:
+
+```sh
+make package-dmg
+open "dist/Audio Monster.dmg"
+```
+
 Quit a copy running from `dist/` before replacing it. The build script refuses
 to overwrite a live app bundle so that a terminating older process cannot
 invalidate the new signature.
@@ -118,11 +134,20 @@ bundle exec fastlane mac verify
 ## Using the app
 
 1. Click the monster in the menu bar.
-2. Paste a public `http://` or `https://` article URL and hit Return.
+2. Paste a public `http://` or `https://` article URL, open a supported document,
+   or paste text into the document input.
 3. Listen as completed sections become available, or wait for the saved M4A.
-4. Open Settings to choose and preview a voice, set playback speed and autoplay,
-   or select a save folder.
+4. Open Settings to choose a voice, set playback speed and autoplay, select a
+   save folder, show or hide the Dock icon, or configure Open at Login.
 5. Play completed files from the library or reveal them in Finder.
+
+### Supported document inputs
+
+Local files are read on-device and are not uploaded. The current supported
+extensions are `.txt` and `.text`, `.md`, `.markdown`, `.mdown`, and `.mkdn`,
+`.rtf` and `.rtfd`, and text-based `.pdf` files. Scanned PDFs need OCR and are
+reported clearly; `.doc`, `.docx`, and other unsupported formats are not silently
+interpreted.
 
 Some sites block automated navigation, require authentication, impose rate
 limits, or expose too little readable text. Audio Monster reports those

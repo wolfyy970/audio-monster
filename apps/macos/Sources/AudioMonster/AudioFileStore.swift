@@ -10,8 +10,24 @@ enum AudioFileStore {
         sourceURL: URL,
         locationKind: SaveLocationKind
     ) throws -> URL {
+        try persist(
+            from: downloadedURL,
+            in: folder,
+            requestedName: requestedName,
+            origin: .web(sourceURL: sourceURL, resolvedURL: sourceURL),
+            locationKind: locationKind
+        )
+    }
+
+    static func persist(
+        from downloadedURL: URL,
+        in folder: URL,
+        requestedName: String,
+        origin: ReadableDocumentOrigin,
+        locationKind: SaveLocationKind
+    ) throws -> URL {
         let safeName = safeFilename(requestedName)
-        let safeSourceURL = ArticleURL(sourceURL.absoluteString)?.value
+        let safeSourceURL = origin.sourceURL.flatMap { ArticleURL($0.absoluteString)?.value }
         let stagingDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("AudioMonster-\(UUID().uuidString)", isDirectory: true)
         let stagingURL = stagingDirectory.appendingPathComponent(safeName)

@@ -24,6 +24,20 @@ enum AudioArtifactWriter {
         sourceURL: URL,
         resolvedURL: URL
     ) async throws {
+        try await exportM4A(
+            from: waveURL,
+            to: outputURL,
+            title: title,
+            origin: .web(sourceURL: sourceURL, resolvedURL: resolvedURL)
+        )
+    }
+
+    static func exportM4A(
+        from waveURL: URL,
+        to outputURL: URL,
+        title: String,
+        origin: ReadableDocumentOrigin
+    ) async throws {
         let asset = AVURLAsset(url: waveURL)
         guard
             let exporter = AVAssetExportSession(
@@ -38,8 +52,7 @@ enum AudioArtifactWriter {
         exporter.shouldOptimizeForNetworkUse = false
         exporter.metadata = metadataItems(
             title: title,
-            sourceURL: sourceURL,
-            resolvedURL: resolvedURL
+            origin: origin
         )
 
         await exporter.export()
@@ -57,12 +70,14 @@ enum AudioArtifactWriter {
 
     private static func metadataItems(
         title: String,
-        sourceURL: URL,
-        resolvedURL: URL
+        origin: ReadableDocumentOrigin
     ) -> [AVMetadataItem] {
-        let safeSourceURL = ArticleURL(sourceURL.absoluteString)?.value
-        let safeResolvedURL = ArticleURL(resolvedURL.absoluteString)?.value
         var items = [item(identifier: .iTunesMetadataSongName, value: title)]
+
+        let safeSourceURL = origin.sourceURL
+            .flatMap { ArticleURL($0.absoluteString)?.value }
+        let safeResolvedURL = origin.resolvedURL
+            .flatMap { ArticleURL($0.absoluteString)?.value }
 
         if let safeSourceURL {
             items.append(

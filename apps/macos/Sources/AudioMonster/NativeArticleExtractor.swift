@@ -49,9 +49,11 @@ final class NativeArticleExtractor: ArticleExtracting {
         }
         try Task.checkCancellation()
 
-        return ReadableArticle(
-            sourceURL: extracted.sourceURL,
-            resolvedURL: extracted.resolvedURL,
+        return ReadableDocument(
+            origin: .web(
+                sourceURL: extracted.sourceURL,
+                resolvedURL: extracted.resolvedURL
+            ),
             title: extracted.title,
             text: extracted.narrationText
         )

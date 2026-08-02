@@ -32,8 +32,7 @@ protocol AudioArtifactEncoding: Sendable {
         from waveURL: URL,
         to outputURL: URL,
         title: String,
-        sourceURL: URL,
-        resolvedURL: URL
+        origin: ReadableDocumentOrigin
     ) async throws
 }
 
@@ -93,15 +92,13 @@ struct NativeAudioArtifactEncoder: AudioArtifactEncoding {
         from waveURL: URL,
         to outputURL: URL,
         title: String,
-        sourceURL: URL,
-        resolvedURL: URL
+        origin: ReadableDocumentOrigin
     ) async throws {
         try await AudioArtifactWriter.exportM4A(
             from: waveURL,
             to: outputURL,
             title: title,
-            sourceURL: sourceURL,
-            resolvedURL: resolvedURL
+            origin: origin
         )
     }
 }
@@ -195,8 +192,7 @@ actor NativeKokoroAudioEngine: AudioConversionEngine {
             from: continuousWaveURL,
             to: outputURL,
             title: article.title,
-            sourceURL: article.sourceURL,
-            resolvedURL: article.resolvedURL
+            origin: article.origin
         )
         try Task.checkCancellation()
         return SynthesisResult(

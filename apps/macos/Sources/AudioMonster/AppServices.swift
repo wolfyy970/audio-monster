@@ -1,10 +1,11 @@
+import AudioMonsterCore
 import Foundation
 
 struct AudioPersistenceRequest: Sendable {
     let sourceFileURL: URL
     let destinationFolderURL: URL
     let requestedFilename: String
-    let sourceURL: URL
+    let origin: ReadableDocumentOrigin
     let locationKind: SaveLocationKind
 }
 
@@ -19,7 +20,7 @@ struct NativeAudioFilePersister: AudioFilePersisting {
                 from: request.sourceFileURL,
                 in: request.destinationFolderURL,
                 requestedName: request.requestedFilename,
-                sourceURL: request.sourceURL,
+                origin: request.origin,
                 locationKind: request.locationKind
             )
         }.value

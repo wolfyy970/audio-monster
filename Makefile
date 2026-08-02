@@ -1,4 +1,4 @@
-.PHONY: setup dev build-app test test-benchmark format format-check verify release
+.PHONY: setup dev build-app package-dmg test test-benchmark format format-check verify release
 
 setup:
 	cd apps/macos && swift package resolve
@@ -8,6 +8,9 @@ dev:
 
 build-app:
 	./scripts/build-macos-app.sh release
+
+package-dmg:
+	zsh ./scripts/create-macos-dmg.sh
 
 test:
 	zsh ./scripts/verify-repository.sh app-tests

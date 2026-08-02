@@ -2,6 +2,7 @@ import AppKit
 import AudioMonsterCore
 @preconcurrency import Combine
 import Foundation
+import UniformTypeIdentifiers
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -17,7 +18,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var currentJob: ConversionJob?
     @Published private(set) var savedFileURL: URL?
     @Published private(set) var isSavingFile = false
-    @Published private(set) var isRenderingWebPage = false
+    @Published private(set) var isResolvingInput = false
     @Published var playbackRate: Double {
         didSet {
             let normalized = AppSettings.normalizedPlaybackRate(playbackRate)
@@ -36,7 +37,7 @@ final class AppModel: ObservableObject {
     let settings: AppSettings
 
     private let conversionEngine: any AudioConversionEngine
-    private let articleExtractor: any ArticleExtracting
+    private let documentResolver: any DocumentResolving
     private let filePersister: any AudioFilePersisting
     private let libraryScanner: any AudioLibraryScanning
     private let playbackCoordinator: PlaybackCoordinator
@@ -55,6 +56,7 @@ final class AppModel: ObservableObject {
         settings: AppSettings,
         conversionEngine: any AudioConversionEngine = NativeKokoroAudioEngine.shared,
         articleExtractor: any ArticleExtracting = NativeArticleExtractor.shared,
+        documentResolver: (any DocumentResolving)? = nil,
         filePersister: any AudioFilePersisting = NativeAudioFilePersister(),
         libraryScanner: any AudioLibraryScanning = NativeAudioLibraryScanner(),
         playbackCoordinator: PlaybackCoordinator? = nil,
@@ -63,7 +65,9 @@ final class AppModel: ObservableObject {
     ) {
         self.settings = settings
         self.conversionEngine = conversionEngine
-        self.articleExtractor = articleExtractor
+        self.documentResolver =
+            documentResolver
+            ?? NativeDocumentResolver(articleExtractor: articleExtractor)
         self.filePersister = filePersister
         self.libraryScanner = libraryScanner
         let resolvedPlaybackCoordinator =
@@ -122,8 +126,11 @@ final class AppModel: ObservableObject {
     }
 
     var isWorking: Bool {
-        isSavingFile || isRenderingWebPage || (currentJob.map { !$0.status.isTerminal } ?? false)
+        isSavingFile || isResolvingInput || (currentJob.map { !$0.status.isTerminal } ?? false)
     }
+
+    /// Compatibility name for existing UI and tests during the input migration.
+    var isRenderingWebPage: Bool { isResolvingInput }
 
     var isPlaying: Bool { playbackCoordinator.isArticlePlaying }
 
@@ -199,10 +206,55 @@ final class AppModel: ObservableObject {
             errorMessage = "Enter a complete http:// or https:// URL."
             return
         }
-        let url = articleURL.value
+        startConversion(.web(articleURL.value))
+    }
+
+    func submitPastedText(title: String?, text: String) {
+        errorMessage = nil
+        savedFileURL = nil
+        startConversion(.pasted(title: title, text: text))
+    }
+
+    func openDocument() {
         guard !isWorking else {
             errorMessage = "Finish or cancel the current conversion first."
             return
+        }
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [
+            "txt", "text", "md", "markdown", "mdown", "mkdn", "rtf", "rtfd", "pdf",
+        ].compactMap { UTType(filenameExtension: $0) }
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            self?.startConversion(.file(url))
+        }
+    }
+
+    private func startConversion(_ input: NarrationInput) {
+        guard !isWorking else {
+            errorMessage = "Finish or cancel the current conversion first."
+            return
+        }
+
+        let initialTitle: String?
+        let initialMessage: String
+        let resolvingWebPage: Bool
+        switch input {
+        case .web(let url):
+            initialTitle = url.host
+            initialMessage = "Reading the page in WebKit"
+            resolvingWebPage = true
+        case .file(let url):
+            initialTitle = url.deletingPathExtension().lastPathComponent
+            initialMessage = "Reading the document"
+            resolvingWebPage = false
+        case .pasted:
+            initialTitle = "Pasted text"
+            initialMessage = "Preparing pasted text"
+            resolvingWebPage = false
         }
 
         voicePreviewCoordinator.suspendPreparation(clearAutoplay: true)
@@ -211,43 +263,44 @@ final class AppModel: ObservableObject {
         let jobID = UUID()
         currentJob = ConversionJob(
             id: jobID,
-            url: url,
+            origin: input.origin,
             status: .extracting,
-            title: url.host(),
+            title: initialTitle,
             recommendedFilename: nil,
             progress: 0.02,
-            message: "Reading the page in WebKit",
+            message: initialMessage,
             audioURL: nil,
             segments: []
         )
         inputURL = ""
-        isRenderingWebPage = true
+        isResolvingInput = resolvingWebPage
 
         conversionTask?.cancel()
         conversionTask = Task { [weak self] in
             guard let self else { return }
             defer {
-                isRenderingWebPage = false
+                isResolvingInput = false
                 if currentJob?.status.isTerminal == true, engineState == .ready {
                     voicePreviewCoordinator.prepareAll()
                     voicePreviewCoordinator.resumePreparation()
                 }
             }
             do {
-                let article = try await articleExtractor.extract(url: url)
+                let document = try await documentResolver.resolve(input)
                 try Task.checkCancellation()
-                isRenderingWebPage = false
+                isResolvingInput = false
                 updateCurrentJob(id: jobID) { job in
-                    job.title = article.title
+                    job.origin = document.origin
+                    job.title = document.title
                     job.status = .synthesizing
                     job.progress = 0.08
-                    job.message = "Preparing article sections"
+                    job.message = "Preparing narration sections"
                 }
                 let workspace = FileManager.default.temporaryDirectory
                     .appendingPathComponent("AudioMonster-\(jobID)", isDirectory: true)
                 activeWorkspaceURL = workspace
                 let result = try await conversionEngine.convert(
-                    article: article,
+                    article: document,
                     voiceID: settings.voiceID,
                     workspaceURL: workspace
                 ) { [weak self] event in
@@ -518,11 +571,11 @@ final class AppModel: ObservableObject {
                 && folder.startAccessingSecurityScopedResource()
             defer { if didAccess { folder.stopAccessingSecurityScopedResource() } }
             savedFileURL = try await filePersister.persist(
-                AudioPersistenceRequest(
+                    AudioPersistenceRequest(
                     sourceFileURL: audioURL,
                     destinationFolderURL: folder,
                     requestedFilename: job.recommendedFilename ?? "Audio Monster.m4a",
-                    sourceURL: job.url,
+                    origin: job.origin,
                     locationKind: reservation.locationKind
                 ))
             await refreshLibrary()

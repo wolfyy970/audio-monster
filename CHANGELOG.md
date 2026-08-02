@@ -4,6 +4,29 @@ Notable user-facing changes to Audio Monster are documented here. The project
 follows [Semantic Versioning](https://semver.org/) while its public API and user
 experience mature.
 
+## [0.3.0] - 2026-08-02
+
+### Added
+
+- One narration pipeline for web URLs, pasted text, and local plain-text,
+  Markdown, RTF/RTFD, and selectable-text PDF documents.
+- Markdown cleanup that removes markup punctuation and code-fence noise before
+  narration, plus filename-based titles for local documents.
+- Bounded local-document parsing with a 10 MiB source/package limit, a 5 MiB
+  decoded-text limit, cancellation checks, symlink rejection, and explicit
+  errors for scanned PDFs and unsupported formats.
+- A drag-to-Applications macOS disk-image installer with a verified SHA-256
+  checksum.
+- Settings for Dock visibility and opening Audio Monster at login, including
+  the native macOS Login Items approval handoff when approval is required.
+
+### Changed
+
+- Generalized conversion, metadata, persistence, and playback orchestration
+  around a readable document origin while keeping local paths and pasted text
+  out of exported audio metadata.
+- Preserved the menu-bar-first experience when the Dock icon is hidden.
+
 ## [0.2.3] - 2026-07-21
 
 ### Changed
@@ -75,6 +98,7 @@ experience mature.
 - Native test suites, benchmark harness, signed-release verification, Fastlane
   notarization, and GitHub repository automation.
 
+[0.3.0]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.3.0
 [0.2.3]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.3
 [0.2.2]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.2
 [0.2.1]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.1

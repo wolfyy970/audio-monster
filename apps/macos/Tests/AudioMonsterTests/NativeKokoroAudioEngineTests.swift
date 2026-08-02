@@ -104,8 +104,7 @@ private actor FakeArtifactEncoder: AudioArtifactEncoding {
         from waveURL: URL,
         to outputURL: URL,
         title: String,
-        sourceURL: URL,
-        resolvedURL: URL
+        origin: ReadableDocumentOrigin
     ) async throws {
         calls += 1
         if let error { throw error }

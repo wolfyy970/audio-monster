@@ -6,6 +6,7 @@ require "tmpdir"
 default_platform(:mac)
 repo_root = File.expand_path("..", __dir__)
 build_script = File.join(repo_root, "scripts", "build-macos-app.sh")
+build_dmg_script = File.join(repo_root, "scripts", "create-macos-dmg.sh")
 verify_app_script = File.join(repo_root, "scripts", "verify-macos-app.sh")
 verify_repo_script = File.join(repo_root, "scripts", "verify-repository.sh")
 source_info_plist = File.join(repo_root, "apps", "macos", "Resources", "Info.plist")
@@ -166,14 +167,38 @@ platform :mac do
     FileUtils.rm_f("#{app_path}.zip")
     verify_notarized_arm64_app(app: app_path)
 
+    # Build the drag-to-Applications installer only after the app ticket has
+    # been stapled, then notarize and staple the disk image as well.
+    sh(build_dmg_script)
+    dmg_path = File.join(repo_root, "dist", "Audio Monster.dmg")
+    if notary[:mode] == :api_key
+      notarize(package: dmg_path, api_key: api_key, print_log: true)
+    else
+      notarize(
+        package: dmg_path,
+        username: notary[:apple_id],
+        asc_provider: notary[:team_id],
+        print_log: true
+      )
+    end
+    sh("xcrun", "stapler", "staple", dmg_path)
+    sh("xcrun", "stapler", "validate", dmg_path)
+
     FileUtils.mkdir_p(artifacts_dir)
     archive_name = "Audio-Monster-v#{version}-macOS-arm64.zip"
     archive_path = File.join(artifacts_dir, archive_name)
     checksum_path = "#{archive_path}.sha256"
+    dmg_archive_name = "Audio-Monster-v#{version}-macOS-arm64.dmg"
+    dmg_archive_path = File.join(artifacts_dir, dmg_archive_name)
+    dmg_checksum_path = "#{dmg_archive_path}.sha256"
     FileUtils.rm_f(archive_path)
     FileUtils.rm_f(checksum_path)
+    FileUtils.rm_f(dmg_archive_path)
+    FileUtils.rm_f(dmg_checksum_path)
     sh("ditto", "-c", "-k", "--rsrc", "--keepParent", app_path, archive_path)
     sh("unzip", "-tq", archive_path)
+    FileUtils.cp(dmg_path, dmg_archive_path)
+    sh("hdiutil", "verify", dmg_archive_path)
 
     # Verify what users will actually download, not only the source bundle in
     # dist/. This catches archive corruption, omitted notarization tickets, and
@@ -189,12 +214,18 @@ platform :mac do
 
     checksum = sh("shasum", "-a", "256", archive_path, log: false).split.first
     File.write(checksum_path, "#{checksum}  #{archive_name}\n")
+    dmg_checksum = sh("shasum", "-a", "256", dmg_archive_path, log: false).split.first
+    File.write(dmg_checksum_path, "#{dmg_checksum}  #{dmg_archive_name}\n")
 
     UI.success("Release artifact: #{archive_path}")
     UI.success("SHA-256: #{checksum}")
+    UI.success("Installer artifact: #{dmg_archive_path}")
+    UI.success("Installer SHA-256: #{dmg_checksum}")
     {
       archive: archive_path,
       checksum: checksum_path,
+      installer: dmg_archive_path,
+      installer_checksum: dmg_checksum_path,
       version: version,
       tag: "v#{version}"
     }
@@ -229,7 +260,12 @@ platform :mac do
       # release is genuinely prerelease-only, mark the reviewed draft in GitHub.
       is_prerelease: false,
       is_generate_release_notes: true,
-      upload_assets: [publication[:archive], publication[:checksum]]
+      upload_assets: [
+        publication[:archive],
+        publication[:checksum],
+        publication[:installer],
+        publication[:installer_checksum]
+      ]
     )
     UI.success("Draft release: #{result['html_url'] || result[:html_url]}")
   end

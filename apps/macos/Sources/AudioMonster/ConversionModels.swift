@@ -1,3 +1,4 @@
+import AudioMonsterCore
 import Foundation
 
 enum KokoroLanguage: String, CaseIterable, Hashable, Sendable {
@@ -226,7 +227,7 @@ enum ConversionStatus: String, Sendable {
 
     var label: String {
         switch self {
-        case .extracting: "Reading page"
+        case .extracting: "Reading input"
         case .synthesizing: "Creating audio"
         case .completed: "Ready"
         case .failed: "Failed"
@@ -237,7 +238,7 @@ enum ConversionStatus: String, Sendable {
 
 struct ConversionJob: Identifiable, Equatable, Sendable {
     let id: UUID
-    let url: URL
+    var origin: ReadableDocumentOrigin
     var status: ConversionStatus
     var title: String?
     var recommendedFilename: String?
@@ -245,6 +246,8 @@ struct ConversionJob: Identifiable, Equatable, Sendable {
     var message: String?
     var audioURL: URL?
     var segments: [AudioSegment]
+
+    var url: URL? { origin.sourceURL }
 
     var segmentsReady: Int { segments.count }
 }

@@ -1,4 +1,6 @@
+import AppKit
 import Foundation
+import ServiceManagement
 
 enum SaveLocationKind: Equatable, Sendable {
     case iCloudDrive
@@ -25,6 +27,17 @@ enum AppSettingsError: LocalizedError, Equatable {
     }
 }
 
+enum LaunchAtLoginStatus: Equatable, Sendable {
+    case disabled
+    case enabled
+    case requiresApproval
+    case unavailable
+
+    var isConfigured: Bool {
+        self == .enabled || self == .requiresApproval
+    }
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     struct SaveDestinationReservation: Sendable {
@@ -38,6 +51,8 @@ final class AppSettings: ObservableObject {
         static let playbackRate = "playbackRate"
         static let legacySynthesisSpeed = "speed"
         static let autoPlay = "autoPlay"
+        static let launchAtLogin = "launchAtLogin"
+        static let showInDock = "showInDock"
         static let folderBookmark = "folderBookmark"
     }
 
@@ -46,6 +61,10 @@ final class AppSettings: ObservableObject {
     private let defaults: UserDefaults
     private let ubiquityContainerProvider: @Sendable () -> URL?
     private let localFallbackFolderProvider: () -> URL
+    private let launchAtLoginStatusProvider: @MainActor () -> LaunchAtLoginStatus
+    private let launchAtLoginUpdater: @MainActor (Bool) throws -> Void
+    private let openLoginItemsSettingsAction: @MainActor () -> Void
+    private let dockVisibilitySetter: @MainActor (Bool) -> Void
     private var hasCustomSaveFolder: Bool
     private var saveLocationResolutionGeneration = 0
     private var activeSaveDestinationReservationID: UUID?
@@ -71,6 +90,19 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(autoPlay, forKey: Key.autoPlay) }
     }
 
+    @Published private(set) var launchAtLoginStatus: LaunchAtLoginStatus
+
+    var launchAtLogin: Bool {
+        launchAtLoginStatus.isConfigured
+    }
+
+    @Published var showInDock: Bool {
+        didSet {
+            defaults.set(showInDock, forKey: Key.showInDock)
+            dockVisibilitySetter(showInDock)
+        }
+    }
+
     @Published private(set) var saveFolderURL: URL
     @Published private(set) var saveLocationKind: SaveLocationKind
 
@@ -81,11 +113,42 @@ final class AppSettings: ObservableObject {
         },
         localFallbackFolderProvider: @escaping () -> URL = {
             ApplicationDirectories.localAudioLibrary()
+        },
+        launchAtLoginStatusProvider: @escaping @MainActor () -> LaunchAtLoginStatus = {
+            switch SMAppService.mainApp.status {
+            case .enabled:
+                .enabled
+            case .requiresApproval:
+                .requiresApproval
+            case .notRegistered:
+                .disabled
+            case .notFound:
+                .unavailable
+            @unknown default:
+                .unavailable
+            }
+        },
+        launchAtLoginUpdater: @escaping @MainActor (Bool) throws -> Void = { enabled in
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        },
+        openLoginItemsSettingsAction: @escaping @MainActor () -> Void = {
+            SMAppService.openSystemSettingsLoginItems()
+        },
+        dockVisibilitySetter: @escaping @MainActor (Bool) -> Void = { showInDock in
+            NSApplication.shared.setActivationPolicy(showInDock ? .regular : .accessory)
         }
     ) {
         self.defaults = defaults
         self.ubiquityContainerProvider = ubiquityContainerProvider
         self.localFallbackFolderProvider = localFallbackFolderProvider
+        self.launchAtLoginStatusProvider = launchAtLoginStatusProvider
+        self.launchAtLoginUpdater = launchAtLoginUpdater
+        self.openLoginItemsSettingsAction = openLoginItemsSettingsAction
+        self.dockVisibilitySetter = dockVisibilitySetter
         voiceID = defaults.string(forKey: Key.voiceID) ?? "af_heart"
 
         let storedPlaybackRate = defaults.object(forKey: Key.playbackRate) as? NSNumber
@@ -94,6 +157,8 @@ final class AppSettings: ObservableObject {
             storedPlaybackRate?.doubleValue ?? legacySynthesisSpeed?.doubleValue ?? 1.0
         )
         autoPlay = defaults.object(forKey: Key.autoPlay) as? Bool ?? true
+        launchAtLoginStatus = launchAtLoginStatusProvider()
+        showInDock = defaults.object(forKey: Key.showInDock) as? Bool ?? false
         if let restoredFolder = Self.restoreFolder(from: defaults) {
             saveFolderURL = restoredFolder
             saveLocationKind = .custom
@@ -104,11 +169,32 @@ final class AppSettings: ObservableObject {
             hasCustomSaveFolder = false
         }
         defaults.set(playbackRate, forKey: Key.playbackRate)
+        defaults.set(launchAtLogin, forKey: Key.launchAtLogin)
+        dockVisibilitySetter(showInDock)
     }
 
     nonisolated static func normalizedPlaybackRate(_ value: Double) -> Double {
         guard value.isFinite else { return 1.0 }
         return min(max(value, playbackRateRange.lowerBound), playbackRateRange.upperBound)
+    }
+
+    func setLaunchAtLogin(_ enabled: Bool) throws {
+        do {
+            try launchAtLoginUpdater(enabled)
+        } catch {
+            refreshLaunchAtLoginStatus()
+            throw error
+        }
+        refreshLaunchAtLoginStatus()
+        defaults.set(launchAtLogin, forKey: Key.launchAtLogin)
+    }
+
+    func refreshLaunchAtLoginStatus() {
+        launchAtLoginStatus = launchAtLoginStatusProvider()
+    }
+
+    func openLoginItemsSettings() {
+        openLoginItemsSettingsAction()
     }
 
     func setSaveFolder(_ url: URL) throws {

@@ -33,6 +33,112 @@ struct PlaybackRateControllerTests {
 
 @MainActor
 struct AppSettingsStorageTests {
+    @MainActor
+    private final class LoginAtLaunchServiceSpy {
+        var status: LaunchAtLoginStatus = .disabled
+        var updateError: Error?
+
+        func update(_ enabled: Bool) throws {
+            if let updateError {
+                throw updateError
+            }
+            status = enabled ? .enabled : .disabled
+        }
+    }
+
+    @Test
+    func appBehaviorSettingsPersistAndUseNativeServiceSeams() throws {
+        let suiteName = "AudioMonsterTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let loginService = LoginAtLaunchServiceSpy()
+        var dockValues: [Bool] = []
+        let settings = AppSettings(
+            defaults: defaults,
+            ubiquityContainerProvider: { nil },
+            launchAtLoginStatusProvider: { loginService.status },
+            launchAtLoginUpdater: { enabled in try loginService.update(enabled) },
+            openLoginItemsSettingsAction: {},
+            dockVisibilitySetter: { dockValues.append($0) }
+        )
+
+        try settings.setLaunchAtLogin(true)
+        settings.showInDock = true
+
+        #expect(settings.launchAtLogin)
+        #expect(settings.showInDock)
+        #expect(loginService.status == .enabled)
+        #expect(defaults.bool(forKey: "launchAtLogin"))
+        #expect(defaults.bool(forKey: "showInDock"))
+        #expect(dockValues.last == true)
+
+        let restoredSettings = AppSettings(
+            defaults: defaults,
+            ubiquityContainerProvider: { nil },
+            launchAtLoginStatusProvider: { loginService.status },
+            launchAtLoginUpdater: { enabled in try loginService.update(enabled) },
+            openLoginItemsSettingsAction: {},
+            dockVisibilitySetter: { dockValues.append($0) }
+        )
+        #expect(restoredSettings.launchAtLogin)
+        #expect(restoredSettings.showInDock)
+    }
+
+    @Test
+    func pendingLoginAtLaunchApprovalOffersTheSystemSettingsHandoff() {
+        let suiteName = "AudioMonsterTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let loginService = LoginAtLaunchServiceSpy()
+        loginService.status = .requiresApproval
+        var didOpenLoginItems = false
+        let settings = AppSettings(
+            defaults: defaults,
+            ubiquityContainerProvider: { nil },
+            launchAtLoginStatusProvider: { loginService.status },
+            launchAtLoginUpdater: { enabled in try loginService.update(enabled) },
+            openLoginItemsSettingsAction: { didOpenLoginItems = true },
+            dockVisibilitySetter: { _ in }
+        )
+
+        #expect(settings.launchAtLogin)
+        #expect(settings.launchAtLoginStatus == .requiresApproval)
+        settings.openLoginItemsSettings()
+        #expect(didOpenLoginItems)
+    }
+
+    @Test
+    func failedLoginAtLaunchRegistrationDoesNotChangeThePreference() {
+        let suiteName = "AudioMonsterTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let loginService = LoginAtLaunchServiceSpy()
+        loginService.updateError = NSError(
+            domain: "AudioMonsterTests",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Registration failed"]
+        )
+        let settings = AppSettings(
+            defaults: defaults,
+            ubiquityContainerProvider: { nil },
+            launchAtLoginStatusProvider: { loginService.status },
+            launchAtLoginUpdater: { enabled in try loginService.update(enabled) },
+            openLoginItemsSettingsAction: {},
+            dockVisibilitySetter: { _ in }
+        )
+
+        do {
+            try settings.setLaunchAtLogin(true)
+            Issue.record("A failed login-item registration must be surfaced to the UI.")
+        } catch {
+            #expect(settings.launchAtLogin == false)
+            #expect((defaults.object(forKey: "launchAtLogin") as? Bool) == false)
+        }
+    }
+
     @Test
     func playbackRateUsesTheFullRangeAndPersistsThroughTheAppModel() {
         let suiteName = "AudioMonsterTests.\(UUID().uuidString)"

@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var settings: AppSettings
     @State private var folderError: String?
+    @State private var launchAtLoginError: String?
 
     var body: some View {
         Form {
@@ -24,6 +25,49 @@ struct SettingsView: View {
                 PlaybackRateControl(value: $model.playbackRate, presentation: .settings)
 
                 Toggle("Play automatically when ready", isOn: $settings.autoPlay)
+            }
+
+            Section("App behavior") {
+                Toggle(
+                    "Open Audio Monster at login",
+                    isOn: Binding(
+                        get: { settings.launchAtLogin },
+                        set: { enabled in
+                            do {
+                                try settings.setLaunchAtLogin(enabled)
+                                launchAtLoginError = nil
+                            } catch {
+                                launchAtLoginError = error.localizedDescription
+                            }
+                        }
+                    )
+                )
+
+                if settings.launchAtLoginStatus == .requiresApproval {
+                    Text("Audio Monster is registered, but macOS needs your approval before it can open at login.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Button("Open Login Items Settings") {
+                        settings.openLoginItemsSettings()
+                    }
+                } else if settings.launchAtLoginStatus == .unavailable {
+                    Text("Login-item registration is unavailable for this app build. Install Audio Monster in Applications and try again.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Toggle("Show icon in Dock", isOn: $settings.showInDock)
+
+                Text("The menu bar icon remains available when the Dock icon is hidden.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if let launchAtLoginError {
+                    Text(launchAtLoginError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
             }
 
             Section("Save location") {
@@ -64,7 +108,7 @@ struct SettingsView: View {
 
         }
         .formStyle(.grouped)
-        .frame(width: 620, height: 380)
+        .frame(width: 620, height: 470)
         .background(SettingsWindowActivationView())
         .task {
             await settings.resolveRecommendedSaveFolder()
@@ -72,6 +116,9 @@ struct SettingsView: View {
                 await model.refreshEngine()
             }
             await model.refreshVoicePreviews()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            settings.refreshLaunchAtLoginStatus()
         }
     }
 
