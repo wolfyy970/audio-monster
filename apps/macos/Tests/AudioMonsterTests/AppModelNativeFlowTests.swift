@@ -410,6 +410,35 @@ struct AppModelNativeFlowTests {
     }
 
     @Test
+    func acceptsPlainHTTPArticleURLs() throws {
+        let suiteName = "AudioMonsterHTTPURL.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults) { nil }
+        let sourceURL = try #require(
+            URL(string: "http://www.incompleteideas.net/IncIdeas/BitterLesson.html")
+        )
+        let article = ReadableArticle(
+            sourceURL: sourceURL,
+            resolvedURL: sourceURL,
+            title: "The Bitter Lesson",
+            text: "Readable article text"
+        )
+        let model = AppModel(
+            settings: settings,
+            conversionEngine: FakeNativeEngine(),
+            articleExtractor: FakeArticleExtractor(article: article),
+            playbackCoordinator: makePlaybackCoordinator(rate: settings.playbackRate)
+        )
+
+        model.inputURL = sourceURL.absoluteString
+        model.submit()
+
+        #expect(model.errorMessage == nil)
+        #expect(model.currentJob != nil)
+    }
+
+    @Test
     func extractionFailureLeavesTheJobFailedWithoutChangingEngineAvailability() async throws {
         let fixture = try makeFixture(name: "ExtractionFailure")
         defer { fixture.cleanup() }

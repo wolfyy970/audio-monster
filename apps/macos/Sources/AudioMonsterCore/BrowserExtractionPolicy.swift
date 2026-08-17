@@ -25,6 +25,39 @@ public enum BrowserNavigationResponsePolicy {
     }
 }
 
+public enum BrowserNavigationFailureKind: Equatable, Sendable {
+    case cancelled
+    case appTransportSecurity
+    case other
+}
+
+/// Classifies WebKit and URL-loading failures without importing WebKit.
+///
+/// App Transport Security errors are often wrapped under WebKit's error
+/// domain, so the walk follows `NSUnderlyingErrorKey` rather than trusting
+/// the outermost code.
+public enum BrowserNavigationFailurePolicy {
+    private static let maximumUnderlyingErrorDepth = 8
+
+    public static func kind(for error: NSError) -> BrowserNavigationFailureKind {
+        var current: NSError? = error
+        var depth = 0
+        while let nsError = current, depth < maximumUnderlyingErrorDepth {
+            if nsError.domain == NSURLErrorDomain {
+                if nsError.code == NSURLErrorCancelled {
+                    return .cancelled
+                }
+                if nsError.code == NSURLErrorAppTransportSecurityRequiresSecureConnection {
+                    return .appTransportSecurity
+                }
+            }
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+            depth += 1
+        }
+        return .other
+    }
+}
+
 public struct SnapshotStabilityPolicy: Equatable, Sendable {
     public let minimumReadableCharacterCount: Int
     public let requiredConsecutiveStableSnapshots: Int
@@ -65,7 +98,7 @@ public struct BrowserExtractionPolicy: Sendable {
         inspectionInterval: Duration = .milliseconds(400),
         webViewWidth: Double = 1_280,
         webViewHeight: Double = 900,
-        applicationNameForUserAgent: String = "AudioMonster/0.3.0"
+        applicationNameForUserAgent: String = "AudioMonster/0.3.1"
     ) {
         stability = SnapshotStabilityPolicy(
             minimumReadableCharacterCount: minimumReadableCharacterCount,

@@ -5,6 +5,7 @@ import WebKit
 enum ArticleExtractionError: LocalizedError {
     case alreadyLoading
     case httpStatus(Int)
+    case insecureConnection
     case navigationFailed(String)
     case timedOut
     case pageTooLarge
@@ -18,6 +19,8 @@ enum ArticleExtractionError: LocalizedError {
             "Another page is already being read."
         case .httpStatus(let statusCode):
             "The page could not be opened because the web server returned HTTP \(statusCode)."
+        case .insecureConnection:
+            "The page could not be opened because it uses an insecure HTTP connection."
         case .navigationFailed(let message):
             "The page could not be opened: \(message)"
         case .timedOut:
@@ -171,14 +174,8 @@ final class BrowserPageRenderer: NSObject, RenderedPageRendering, WKNavigationDe
         didFail navigation: WKNavigation!,
         withError error: any Error
     ) {
-        guard webView === self.webView,
-            let requestID = activeRequestID,
-            !isCancelledNavigation(error)
-        else { return }
-        finish(
-            .failure(ArticleExtractionError.navigationFailed(error.localizedDescription)),
-            requestID: requestID
-        )
+        guard webView === self.webView, let requestID = activeRequestID else { return }
+        failNavigation(error, requestID: requestID)
     }
 
     func webView(
@@ -186,14 +183,8 @@ final class BrowserPageRenderer: NSObject, RenderedPageRendering, WKNavigationDe
         didFailProvisionalNavigation navigation: WKNavigation!,
         withError error: any Error
     ) {
-        guard webView === self.webView,
-            let requestID = activeRequestID,
-            !isCancelledNavigation(error)
-        else { return }
-        finish(
-            .failure(ArticleExtractionError.navigationFailed(error.localizedDescription)),
-            requestID: requestID
-        )
+        guard webView === self.webView, let requestID = activeRequestID else { return }
+        failNavigation(error, requestID: requestID)
     }
 
     private func inspectUntilReady(_ webView: WKWebView, requestID: UUID) {
@@ -380,9 +371,21 @@ final class BrowserPageRenderer: NSObject, RenderedPageRendering, WKNavigationDe
         continuation.resume(with: result)
     }
 
-    private func isCancelledNavigation(_ error: any Error) -> Bool {
-        let nsError = error as NSError
-        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
+    private func failNavigation(_ error: any Error, requestID: UUID) {
+        switch BrowserNavigationFailurePolicy.kind(for: error as NSError) {
+        case .cancelled:
+            return
+        case .appTransportSecurity:
+            finish(
+                .failure(ArticleExtractionError.insecureConnection),
+                requestID: requestID
+            )
+        case .other:
+            finish(
+                .failure(ArticleExtractionError.navigationFailed(error.localizedDescription)),
+                requestID: requestID
+            )
+        }
     }
 }
 

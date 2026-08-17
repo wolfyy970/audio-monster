@@ -91,6 +91,13 @@ Main-frame HTTP 4xx and 5xx responses—including rate limits such as 429—are 
 by the WebKit navigation delegate before snapshot polling begins. Redirects,
 successful responses, and failed subresources remain eligible so that one broken
 image or analytics request cannot discard an otherwise readable article.
+Submitted `http://` URLs are loaded as-is; the app does not rewrite them to
+HTTPS, because some publishers still have no working encrypted endpoint. The
+packaged `Info.plist` disables App Transport Security for web content and other
+network loads so those pages, HTTP-to-HTTPS redirects, and IP-literal article
+addresses are not refused before navigation starts. XCTest hosts do not inherit
+that plist, so loopback HTTP fixtures cover protocol behavior while the
+packaged-app verifier requires the production keys.
 
 The `RenderedPageRendering`, `ArticleParsing`, and `ArticleExtracting` protocols
 let a future iOS client replace the desktop browser adapter, or a hosted service

@@ -571,7 +571,7 @@ final class AppModel: ObservableObject {
                 && folder.startAccessingSecurityScopedResource()
             defer { if didAccess { folder.stopAccessingSecurityScopedResource() } }
             savedFileURL = try await filePersister.persist(
-                    AudioPersistenceRequest(
+                AudioPersistenceRequest(
                     sourceFileURL: audioURL,
                     destinationFolderURL: folder,
                     requestedFilename: job.recommendedFilename ?? "Audio Monster.m4a",

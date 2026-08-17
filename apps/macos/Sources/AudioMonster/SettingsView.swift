@@ -52,9 +52,11 @@ struct SettingsView: View {
                         settings.openLoginItemsSettings()
                     }
                 } else if settings.launchAtLoginStatus == .unavailable {
-                    Text("Login-item registration is unavailable for this app build. Install Audio Monster in Applications and try again.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Login-item registration is unavailable for this app build. Install Audio Monster in Applications and try again."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
 
                 Toggle("Show icon in Dock", isOn: $settings.showInDock)

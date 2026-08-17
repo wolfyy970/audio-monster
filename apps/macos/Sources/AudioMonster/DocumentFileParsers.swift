@@ -1,6 +1,6 @@
-@preconcurrency import PDFKit
 import AudioMonsterCore
 import Foundation
+@preconcurrency import PDFKit
 
 protocol DocumentFileParsing: Sendable {
     var supportedExtensions: Set<String> { get }
@@ -37,12 +37,14 @@ enum DocumentFileParsingError: LocalizedError {
 struct DocumentFileParserRegistry: Sendable {
     private let parsers: [any DocumentFileParsing]
 
-    init(parsers: [any DocumentFileParsing] = [
-        PlainTextDocumentParser(),
-        MarkdownDocumentParser(),
-        RichTextDocumentParser(),
-        PDFDocumentParser(),
-    ]) {
+    init(
+        parsers: [any DocumentFileParsing] = [
+            PlainTextDocumentParser(),
+            MarkdownDocumentParser(),
+            RichTextDocumentParser(),
+            PDFDocumentParser(),
+        ]
+    ) {
         self.parsers = parsers
     }
 
@@ -162,7 +164,8 @@ private enum DocumentTextReading {
             throw DocumentFileParsingError.fileTooLarge
         }
 
-        let text = String(data: data, encoding: .utf8)
+        let text =
+            String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .utf16)
             ?? String(data: data, encoding: .utf16LittleEndian)
             ?? String(data: data, encoding: .utf16BigEndian)
@@ -182,11 +185,13 @@ private enum DocumentTextReading {
         }
         if values.isDirectory == true {
             var totalBytes = 0
-            guard let enumerator = FileManager.default.enumerator(
-                at: fileURL,
-                includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey],
-                options: [.skipsHiddenFiles]
-            ) else {
+            guard
+                let enumerator = FileManager.default.enumerator(
+                    at: fileURL,
+                    includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey],
+                    options: [.skipsHiddenFiles]
+                )
+            else {
                 throw DocumentFileParsingError.malformedDocument
             }
             for case let childURL as URL in enumerator {
@@ -216,7 +221,8 @@ private enum DocumentTextReading {
         origin: ReadableDocumentOrigin,
         title: String
     ) throws -> ReadableDocument {
-        let normalized = text
+        let normalized =
+            text
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)

@@ -67,7 +67,8 @@ final class NativeDocumentResolver: DocumentResolving {
                 displayName: url.lastPathComponent
             )
         case .pasted(let title, let text):
-            let normalizedText = text
+            let normalizedText =
+                text
                 .replacingOccurrences(of: "\r\n", with: "\n")
                 .replacingOccurrences(of: "\r", with: "\n")
                 .trimmingCharacters(in: .whitespacesAndNewlines)

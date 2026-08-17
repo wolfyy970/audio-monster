@@ -59,6 +59,13 @@ valid_output="$(zsh "${repo_root}/scripts/verify-macos-app.sh" "${fixture_app}")
 print -r -- "${valid_output}" | grep -Fq "${repo_root}/apps/macos/.build/checkouts" \
   && fail "a valid verification leaked dependency checkout paths."
 
+/usr/libexec/PlistBuddy -c 'Delete :NSAppTransportSecurity' "${contents_dir}/Info.plist"
+resign_fixture
+expect_failure "a missing App Transport Security exception" \
+  "http:// article URLs can open"
+cp "${repo_root}/apps/macos/Resources/Info.plist" "${contents_dir}/Info.plist"
+resign_fixture
+
 mv "${resources_dir}/AudioMonster.icns" "${resources_dir}/AudioMonster.icns.missing"
 resign_fixture
 expect_failure "a missing application icon" \

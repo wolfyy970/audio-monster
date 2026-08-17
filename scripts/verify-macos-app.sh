@@ -25,6 +25,9 @@ require_file "${binary}"
 require_file "${contents_dir}/Info.plist"
 
 plutil -lint "${contents_dir}/Info.plist" >/dev/null
+zsh "${script_dir}/verify-app-transport-security.sh" \
+  "${contents_dir}/Info.plist" \
+  "the app"
 cmp -s "${source_info}" "${contents_dir}/Info.plist" \
   || fail "packaged Info.plist differs from the source plist."
 bundle_identifier="$(plutil -extract CFBundleIdentifier raw "${contents_dir}/Info.plist")"

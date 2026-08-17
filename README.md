@@ -135,7 +135,8 @@ bundle exec fastlane mac verify
 
 1. Click the monster in the menu bar.
 2. Paste a public `http://` or `https://` article URL, open a supported document,
-   or paste text into the document input.
+   or paste text into the document input. HTTP-only publishers are opened as
+   HTTP; Audio Monster does not rewrite them to HTTPS.
 3. Listen as completed sections become available, or wait for the saved M4A.
 4. Open Settings to choose a voice, set playback speed and autoplay, select a
    save folder, show or hide the Dock icon, or configure Open at Login.

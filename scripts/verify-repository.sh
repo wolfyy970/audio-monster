@@ -83,6 +83,10 @@ verify_repository_metadata() {
     "${repo_root}/apps/macos/Resources/Info.plist" \
     "${repo_root}/apps/macos/Resources/AudioMonster.entitlements" \
     >/dev/null
+  zsh "${script_dir}/verify-app-transport-security.sh" \
+    "${repo_root}/apps/macos/Resources/Info.plist" \
+    "Info.plist"
+  zsh "${script_dir}/tests/verify-app-transport-security-tests.sh"
 
   local app_version expected_user_agent
   app_version="$(

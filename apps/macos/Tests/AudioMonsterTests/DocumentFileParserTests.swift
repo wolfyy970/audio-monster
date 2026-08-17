@@ -25,13 +25,13 @@ struct DocumentFileParserTests {
     @Test
     func projectsCommonMarkdownSyntaxIntoReadableText() async throws {
         let markdown = """
-        # A heading
+            # A heading
 
-        - First item
-        - [Second item](https://example.com)
+            - First item
+            - [Second item](https://example.com)
 
-        > A quotation
-        """
+            > A quotation
+            """
         let fileURL = try temporaryFile(named: "Guide.md", contents: markdown)
         defer { try? FileManager.default.removeItem(at: fileURL) }
 

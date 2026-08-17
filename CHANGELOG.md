@@ -4,6 +4,14 @@ Notable user-facing changes to Audio Monster are documented here. The project
 follows [Semantic Versioning](https://semver.org/) while its public API and user
 experience mature.
 
+## [0.3.1] - 2026-08-16
+
+### Fixed
+
+- Open ordinary `http://` article URLs in WebKit. macOS App Transport Security
+  was refusing them even though the app already accepted HTTP addresses, which
+  blocked HTTP-only publishers and the first hop of HTTP-to-HTTPS redirects.
+
 ## [0.3.0] - 2026-08-02
 
 ### Added
@@ -98,6 +106,7 @@ experience mature.
 - Native test suites, benchmark harness, signed-release verification, Fastlane
   notarization, and GitHub repository automation.
 
+[0.3.1]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.3.1
 [0.3.0]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.3.0
 [0.2.3]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.3
 [0.2.2]: https://github.com/wolfyy970/audio-monster/releases/tag/v0.2.2
